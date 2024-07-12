@@ -40,7 +40,7 @@ impl fmt::Display for CLIError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             CLIError::MultipleInterfaces => {
-                f.write_str("At most one of the following tranport interfaces may be used: '--serial', '--openocd', '-jlink'")
+                f.write_str("At most one of the following tranport interfaces may be used: '--serial'")
             },
         }
     }

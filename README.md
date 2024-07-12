@@ -13,6 +13,4 @@ implemented to make TockLoader usable.
   - [x] Implement the command line arguments parser
   - [ ] Implement the serial port listener
   - [ ] Implement the tockloader serial protocol
-  - [ ] Implement the `openocd` transport interface
-  - [ ] Implement the `jlink` transport interface
   - [ ] Implement the TBF Parser

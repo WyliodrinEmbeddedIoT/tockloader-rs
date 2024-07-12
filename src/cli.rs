@@ -42,21 +42,6 @@ fn get_channel_args() -> Vec<clap::Arg> {
         arg!(-p --port <PORT> "The serial port or device name to use"),
         arg!(--serial "Use the serial bootloader to flash")
             .action(clap::ArgAction::SetTrue),
-        arg!(--jlink "Use JLinkExe to flash")
-            .action(clap::ArgAction::SetTrue),
-        arg!(--openocd "Use OpenOCD to flash")
-            .action(clap::ArgAction::SetTrue),
-        arg!(--"jlink-device" <DEVICE> "The device type to pass to JLinkExe. Useful for initial commissioning.")
-            .default_value("cortex-m0"),
-        arg!(--"jlink-cmd" <CMD> "The JLinkExe binary to invoke"),
-        arg!(--"jlink-speed" <SPEED> "The JLink speed to pass to JLinkExe"),
-        arg!(--"jlink-if" <INTERFACE> "The interface type to pass to JLinkExe"),
-        arg!(--"openocd-board" <CFG_FILE> "The cfg file in OpenOCD `board` folder"),
-        arg!(--"openocd-cmd" <CMD> "The openocd binary to invoke")
-            .default_value("openocd"),
-        // These may not work out of the box
-        arg!(--"openocd-options" <OPTIONS> "Tockloader-specific flags to direct how Tockloader uses OpenOCD"),
-        arg!(--"openocd-commands" <CMDS> "Directly specify which OpenOCD commands to use for \"program\", \"read\", or \"erase\" actions"),
         // -----
         arg!(--"flash-file" "Operate on a binary flash file instead of a proper board")
             .action(clap::ArgAction::SetTrue),

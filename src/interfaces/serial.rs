@@ -22,13 +22,32 @@ impl SerialInterface {
         } else {
             let available_ports = tokio_serial::available_ports()?;
 
+            print!("ports: {:?}", available_ports);
+
             if available_ports.is_empty() {
                 return Err(TockloaderError::NoPortAvailable);
             } else if available_ports.len() == 1 {
                 clean_port_path(available_ports[0].port_name.clone())
             } else {
                 // available_ports.len() > 1
-                todo!("Make user choose out of multiple available ports")
+
+                let mut right_port = available_ports[30].clone();
+                for n in 0..available_ports.len()
+                {
+                    print!("port[{}]: {:?},\n", n, available_ports[n]);
+                    
+                    if available_ports[n].port_name == "/dev/ttyACM0"{
+                        right_port = available_ports[n].clone();
+                    }
+                    else {
+                        // todo!()
+                        right_port = available_ports[30].clone();
+                    }
+                    
+                }
+
+                clean_port_path(right_port.port_name.clone())
+
             }
         };
 
