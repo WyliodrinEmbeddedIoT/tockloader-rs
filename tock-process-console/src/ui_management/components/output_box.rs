@@ -60,10 +60,16 @@ pub struct RenderProperties {
 
 impl ComponentRender<RenderProperties> for OutputBox {
     fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
-        let outputs: Vec<Paragraph>;
+        let mut text: String = "".to_owned();
+
         for n in 0..self.content.len()
         {
-            let output = Paragraph::new(format!("port[{n}]: {:?},\n",self.content[n]))
+            let serial_info =format!("Port[{n}](Name:{:#?}, Type:{:#?}), \n",self.content[n].port_name, self.content[n].port_type);
+            text = text + &serial_info; 
+            
+        }
+        
+        let output = Paragraph::new(text)
             .style(Style::default().fg(Color::Cyan))
             .block(
                 Block::default()
@@ -73,9 +79,6 @@ impl ComponentRender<RenderProperties> for OutputBox {
             );
 
             frame.render_widget(output, properties.area);
-        }
-        
-
         
         // frame.render_widget(output, properties.area);
     }

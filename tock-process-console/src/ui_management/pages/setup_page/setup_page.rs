@@ -115,11 +115,11 @@ impl Component for SetupPage {
 impl ComponentRender<()> for SetupPage {
     fn render(&self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
         let [_, vertical_centered, _] = *Layout::default()
-            .direction(Direction::Horizontal)
+            .direction(Direction::Vertical)
             .constraints([
-                Constraint::Ratio(1, 20),
-                Constraint::Min(1),
-                Constraint::Ratio(1, 20),
+                Constraint::Ratio(2, 20),
+                Constraint::Min(0),
+                Constraint::Ratio(2, 20),
             ])
             .split(frame.size())
         else {
@@ -151,17 +151,12 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfhfla")
         };
 
-        // let available_ports = match tokio_serial::available_ports() {
-        //     Ok(ports) => ports,
-        //     Err(error) => panic!("ports not found!"),
-        // };
-
         let [container_port_output, container_help_text, container_error_message] =
             *Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
                     Constraint::Length(100),
-                    Constraint::Length(50),//available_ports.len().try_into().unwrap()),
+                    Constraint::Length(20),//available_ports.len().try_into().unwrap()),
                     Constraint::Min(0),
                 ])
                 .split(both_centered)
