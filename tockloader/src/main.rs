@@ -35,7 +35,7 @@ async fn run() -> Result<(), TockloaderError> {
         Some(("listen", sub_matches)) => {
             let mut interface = build_interface(sub_matches)?;
             // interface.open()?;
-            sleep(Duration::new(5, 0)).await;
+            sleep(Duration::new(2, 0)).await;
 
             let _ = match tock_process_console::run().await {
                 Ok(()) => {}

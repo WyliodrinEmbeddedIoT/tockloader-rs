@@ -4,17 +4,18 @@
 
 use crate::{
     state_store::{Action, BoardConnectionStatus, State},
-    ui_management::components::{input_box, Component, ComponentRender, InputBox},
+    ui_management::components::{input_box, Component, ComponentRender, InputBox, output_box, OutputBox},
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
     layout::{Constraint, Layout},
     prelude::Direction,
-    style::{Color, Modifier, Style},
+    style::{Color, Modifier, Style, Stylize},
     text::Text,
     widgets::{Paragraph, Wrap},
 };
 use tokio::sync::mpsc::UnboundedSender;
+use tokio_serial::{SerialPort, SerialPortInfo};
 
 struct Properties {
     error_message: Option<String>,
@@ -35,6 +36,7 @@ impl From<&State> for Properties {
 
 /// Struct that handles setup of the console application
 pub struct SetupPage {
+    output_box: OutputBox,
     input_box: InputBox,
     action_sender: UnboundedSender<Action>,
     properties: Properties,
@@ -60,10 +62,12 @@ impl Component for SetupPage {
         Self: Sized,
     {
         let input_box = InputBox::new(state, screen_idx, action_sender.clone());
+        let output_box = OutputBox::new(state, screen_idx, action_sender.clone());
 
         SetupPage {
             action_sender: action_sender.clone(),
             input_box,
+            output_box,
             properties: Properties::from(state),
         }
         .update_with_state(state)
@@ -100,6 +104,7 @@ impl Component for SetupPage {
         Self {
             properties: Properties::from(state),
             input_box: self.input_box,
+            output_box: self.output_box,
             action_sender: self.action_sender,
         }
     }
@@ -110,11 +115,11 @@ impl Component for SetupPage {
 impl ComponentRender<()> for SetupPage {
     fn render(&self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
         let [_, vertical_centered, _] = *Layout::default()
-            .direction(Direction::Vertical)
+            .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 20),
                 Constraint::Min(1),
-                Constraint::Ratio(1, 3),
+                Constraint::Ratio(1, 20),
             ])
             .split(frame.size())
         else {
@@ -151,26 +156,26 @@ impl ComponentRender<()> for SetupPage {
         //     Err(error) => panic!("ports not found!"),
         // };
 
-        // let [container_port_output, container_help_text, container_error_message] =
-        //     *Layout::default()
-        //         .direction(Direction::Horizontal)
-        //         .constraints([
-        //             Constraint::Length(3),
-        //             Constraint::Length(available_ports.len().try_into().unwrap()),
-        //             Constraint::Min(1),
-        //         ])
-        //         .split(both_centered)
-        // else {
-        //     panic!("adfhfla")
-        // };
+        let [container_port_output, container_help_text, container_error_message] =
+            *Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Length(100),
+                    Constraint::Length(50),//available_ports.len().try_into().unwrap()),
+                    Constraint::Min(0),
+                ])
+                .split(both_centered)
+        else {
+            panic!("available ports output box paniced!")
+        };
 
-        self.input_box.render(
+        self.output_box.render(
             frame,
-            input_box::RenderProperties {
+            output_box::RenderProperties {
                 title: "Serial port".to_string(),
-                area: container_port_input,
+                area: container_port_output,
                 border_color: Color::Yellow,
-                show_cursor: true,
+                show_cursor: false,
             },
         );
 

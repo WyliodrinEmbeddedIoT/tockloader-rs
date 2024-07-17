@@ -11,13 +11,15 @@ use ratatui::{
     widgets::{Block, Borders, Paragraph},
 };
 use tokio::sync::mpsc::UnboundedSender;
+use tokio_serial::SerialPortInfo;
+use std::fmt::Debug;
 
-pub struct output_box<T> {
-    content: Vec<T>,
+pub struct OutputBox {
+    content: Vec<SerialPortInfo>,
 }
 
-impl<T> output_box<T> {
-    pub fn content(&self) -> &Vec<T> {
+impl OutputBox {
+    pub fn content(&self) -> &Vec<SerialPortInfo> {
         &self.content
     }
 
@@ -28,6 +30,25 @@ impl<T> output_box<T> {
     pub fn clear(&mut self) {
         self.content.clear();
     }
+
+    pub fn new<>(
+        _state: &State,
+        _screen_idx: Option<usize>,
+        _action_sender: UnboundedSender<Action>,
+    ) -> Self {
+
+        let available_ports = match tokio_serial::available_ports() {
+            Ok(ports) => ports,
+            Err(error) => panic!("ports not found!"),
+        };
+
+        Self {
+            content: available_ports,
+        }
+    }
+
+
+    
 }
 
 pub struct RenderProperties {
@@ -37,23 +58,25 @@ pub struct RenderProperties {
     pub show_cursor: bool,
 }
 
-// impl ComponentRender<RenderProperties> for output_box {
-//     fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
-//         // let output = Paragraph::new()!todo("all serial ports displayed");)
-//             .style(Style::default().fg(Color::Cyan))
-//             .block(
-//                 Block::default()
-//                     .borders(Borders::ALL)
-//                     .fg(properties.border_color)
-//                     .title(properties.title),
-//             );
-//         frame.render_widget(input, properties.area);
+impl ComponentRender<RenderProperties> for OutputBox {
+    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
+        let outputs: Vec<Paragraph>;
+        for n in 0..self.content.len()
+        {
+            let output = Paragraph::new(format!("port[{n}]: {:?},\n",self.content[n]))
+            .style(Style::default().fg(Color::Cyan))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .fg(properties.border_color)
+                    .title(properties.title.clone()),
+            );
 
-//         if properties.show_cursor {
-//             frame.set_cursor(
-//                 properties.area.x + self.cursor_position as u16 + 1,
-//                 properties.area.y + 1,
-//             )
-//         }
-//     }
-// }
+            frame.render_widget(output, properties.area);
+        }
+        
+
+        
+        // frame.render_widget(output, properties.area);
+    }
+}
