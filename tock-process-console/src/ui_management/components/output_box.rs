@@ -6,9 +6,7 @@ use super::{Component, ComponentRender};
 use crate::state_store::{Action, State};
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
-    prelude::Rect,
-    style::{Color, Style, Styled, Stylize},
-    widgets::{Block, Borders, Paragraph},
+    layout::Margin, prelude::Rect, style::{Color, Style, Styled, Stylize}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState}
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_serial::SerialPortInfo;
@@ -68,7 +66,7 @@ impl ComponentRender<RenderProperties> for OutputBox {
             text = text + &serial_info; 
             
         }
-        
+
         let output = Paragraph::new(text)
             .style(Style::default().fg(Color::Cyan))
             .block(
@@ -78,8 +76,6 @@ impl ComponentRender<RenderProperties> for OutputBox {
                     .title(properties.title.clone()),
             );
 
-            frame.render_widget(output, properties.area);
         
-        // frame.render_widget(output, properties.area);
     }
 }

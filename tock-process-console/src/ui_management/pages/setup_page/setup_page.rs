@@ -8,11 +8,7 @@ use crate::{
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
-    layout::{Constraint, Layout},
-    prelude::Direction,
-    style::{Color, Modifier, Style, Stylize},
-    text::Text,
-    widgets::{Paragraph, Wrap},
+    layout::{Constraint, Flex, Layout, Margin}, prelude::Direction, style::{Color, Modifier, Style, Stylize}, symbols::scrollbar, text::{self, Text}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap}
 };
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_serial::{SerialPort, SerialPortInfo};
@@ -40,6 +36,8 @@ pub struct SetupPage {
     input_box: InputBox,
     action_sender: UnboundedSender<Action>,
     properties: Properties,
+    scrollbar_state: ScrollbarState,
+    scroll_position: usize,
 }
 
 impl SetupPage {
@@ -64,11 +62,16 @@ impl Component for SetupPage {
         let input_box = InputBox::new(state, screen_idx, action_sender.clone());
         let output_box = OutputBox::new(state, screen_idx, action_sender.clone());
 
+        let mut scroll_position = 0;
+        let mut scrollbar_state = ScrollbarState::new(output_box.content().len()).position(scroll_position);
+
         SetupPage {
             action_sender: action_sender.clone(),
             input_box,
             output_box,
             properties: Properties::from(state),
+            scrollbar_state,
+            scroll_position,
         }
         .update_with_state(state)
     }
@@ -93,6 +96,26 @@ impl Component for SetupPage {
                     let _ = self.action_sender.send(Action::Exit);
                 }
             }
+            KeyCode::Up => {
+                self.scroll_position = self.scroll_position.saturating_sub(1);
+                self.scrollbar_state =
+                self.scrollbar_state .position(self.scroll_position);
+            }
+            KeyCode::Down => {
+                self.scroll_position = self.scroll_position.saturating_add(1);
+                self.scrollbar_state =
+                self.scrollbar_state .position(self.scroll_position);
+            }
+            KeyCode::PageUp => {
+                self.scroll_position = self.scroll_position.saturating_sub(1);
+                self.scrollbar_state =
+                self.scrollbar_state .position(self.scroll_position);
+            }
+            KeyCode::PageDown => {
+                self.scroll_position = self.scroll_position.saturating_add(1);
+                self.scrollbar_state =
+                self.scrollbar_state .position(self.scroll_position);
+            }
             _ => {}
         }
     }
@@ -106,6 +129,8 @@ impl Component for SetupPage {
             input_box: self.input_box,
             output_box: self.output_box,
             action_sender: self.action_sender,
+            scrollbar_state: self.scrollbar_state,
+            scroll_position: self.scroll_position,
         }
     }
 
@@ -113,7 +138,11 @@ impl Component for SetupPage {
 }
 
 impl ComponentRender<()> for SetupPage {
+
     fn render(&self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
+
+
+
         let [_, vertical_centered, _] = *Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -138,44 +167,185 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
-        let [container_port_input, container_help_text, container_error_message] =
-            *Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(3),
-                    Constraint::Length(3),
-                    Constraint::Min(1),
-                ])
-                .split(both_centered)
+
+
+
+
+
+        let [_, serial_position_left_horizontal, _] = *Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                //Constraint::Ratio(1, 3),
+                Constraint::Percentage((5)),
+                Constraint::Min(0),
+                Constraint::Percentage((30)),
+            ])
+            .split(frame.size())
         else {
-            panic!("adfhfla")
+            panic!("adfikjge")
         };
 
-        let [container_port_output, container_help_text, container_error_message] =
-            *Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Length(100),
-                    Constraint::Length(20),//available_ports.len().try_into().unwrap()),
-                    Constraint::Min(0),
-                ])
-                .split(both_centered)
+
+        
+        let [_, serial_position_v, _] = *Layout::default()
+            .horizontal_margin(4)
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(4),
+                Constraint::Min(2),
+                Constraint::Percentage(70),
+            ])
+            .split(frame.size())
         else {
-            panic!("available ports output box paniced!")
+            panic!("adfikjge")
         };
 
-        self.output_box.render(
-            frame,
-            output_box::RenderProperties {
-                title: "Serial port".to_string(),
-                area: container_port_output,
-                border_color: Color::Yellow,
-                show_cursor: false,
-            },
+
+        let [_, serial_position_h, _] = *Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage((0)),
+                Constraint::Min(2),
+                Constraint::Percentage(70),
+            ])
+            .split(serial_position_v)
+        else {
+            panic!("adfikjge")
+        };
+
+
+
+
+
+
+
+
+        // let [container_port_input, container_help_text, container_error_message] =
+        //     *Layout::default()
+        //         .direction(Direction::Vertical)
+        //         .constraints([
+        //             Constraint::Length(3),
+        //             Constraint::Length(3),
+        //             Constraint::Min(1),
+        //         ])
+        //         .split(both_centered,)
+        // else {
+        //     panic!("adfhfla")
+        // };
+
+
+        let mut text = "".to_owned();
+        for n in 0..self.output_box.content().len()
+        {
+            let serial_info =format!("Port[{n}](Name:{:#?}, Type:{:#?}), \n",self.output_box.content()[n].port_name, self.output_box.content()[n].port_type);
+            text = text + &serial_info; 
+            
+        };
+
+        let paragraph = Paragraph::new(text)
+        .style(Style::default().fg(Color::Cyan))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .fg(Color::Yellow)
+                .title("Serial ports"),
+        )
+        .scroll((self.scroll_position as u16, 0));
+        frame.render_widget(paragraph, serial_position_h);
+        frame.render_stateful_widget(
+        Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .symbols(scrollbar::VERTICAL)
+            .begin_symbol(Some("↑"))
+            .end_symbol(Some("↓")),
+            serial_position_h.inner(Margin {
+            vertical: 1,
+            horizontal: 0,
+        }),
+        &mut self.scrollbar_state.clone()
         );
+        
+        
 
-        let help_text = Paragraph::new(Text::from("Press <Enter> to connect"));
-        frame.render_widget(help_text, container_help_text);
+        // let [container_port_output, container_help_text, container_error_message] =
+        //     *Layout::default()
+        //         .direction(Direction::Horizontal)
+        //         .constraints([
+        //             Constraint::Length(100),
+        //             Constraint::Length(20),//available_ports.len().try_into().unwrap()),
+        //             Constraint::Min(0),
+        //         ])
+        //         .split(serial_position_h)
+        // else {
+        //     panic!("available ports output box paniced!")
+        // };
+
+
+        // self.output_box.render(
+        //     frame,
+        //     output_box::RenderProperties {
+        //         title: "Serial port".to_string(),
+        //         area: container_port_output,
+        //         border_color: Color::Yellow,
+        //         show_cursor: false,
+        //     },
+        // );
+
+        let [_, help_text_v, _] = *Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(30),
+            Constraint::Min(2),
+            Constraint::Percentage(20),
+        ])
+        .split(frame.size())
+        else {
+            panic!("adfikjge")
+        };
+
+
+
+        let [_, help_text_h, _] = *Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(2),
+                Constraint::Min(2),
+                Constraint::Percentage(80),
+            ])
+            .split(help_text_v)
+        else {
+            panic!("adfikjge")
+        };
+
+        let [_, panic_v, _] = *Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(80),
+            Constraint::Min(2),
+            Constraint::Percentage(5),
+        ])
+        .split(frame.size())
+        else {
+            panic!("adfikjge")
+        };
+
+
+
+        let [_, panic_h, _] = *Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(30),
+                Constraint::Min(2),
+                Constraint::Percentage(20),
+            ])
+            .split(panic_v)
+        else {
+            panic!("adfikjge")
+        };
+
+
+
+        let help_text = Paragraph::new(Text::from("Use ▲ ▼ PageUp PageDown to scroll.  "));
+        frame.render_widget(help_text, help_text_h);
 
         let error = if let Some(error) = &self.properties.error_message {
             Text::from(format!("Error: {}", error))
@@ -188,6 +358,6 @@ impl ComponentRender<()> for SetupPage {
                 .add_modifier(Modifier::SLOW_BLINK | Modifier::ITALIC),
         );
 
-        frame.render_widget(error_message, container_error_message);
+        frame.render_widget(error_message, panic_h);
     }
 }
