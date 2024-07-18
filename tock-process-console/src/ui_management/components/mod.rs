@@ -4,8 +4,11 @@
 
 pub mod input_box;
 pub mod output_box;
+pub mod probe_info;
+
 pub use input_box::InputBox;
 pub use output_box::OutputBox;
+pub use probe_info::ProbeInfo;
 
 mod component;
 pub use component::{Component, ComponentRender};

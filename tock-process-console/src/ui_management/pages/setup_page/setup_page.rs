@@ -3,13 +3,14 @@
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
 use crate::{
-    state_store::{Action, BoardConnectionStatus, State},
-    ui_management::components::{input_box, Component, ComponentRender, InputBox, output_box, OutputBox},
+    board, state_store::{Action, BoardConnectionStatus, State}, ui_management::components::{input_box, output_box, probe_info, Component, ComponentRender, InputBox, OutputBox, ProbeInfo}
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
+use probe_rs::probe::{list::Lister, Probe};
 use ratatui::{
-    layout::{Constraint, Flex, Layout, Margin}, prelude::Direction, style::{Color, Modifier, Style, Stylize}, symbols::scrollbar, text::{self, Text}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap}
+    layout::{Alignment, Constraint, Flex, Layout, Margin}, prelude::Direction, style::{Color, Modifier, Style, Stylize}, symbols::scrollbar, text::{self, Line, Text}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap}
 };
+
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_serial::{SerialPort, SerialPortInfo};
 
@@ -143,50 +144,10 @@ impl ComponentRender<()> for SetupPage {
 
 
 
-        let [_, vertical_centered, _] = *Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Ratio(2, 20),
-                Constraint::Min(0),
-                Constraint::Ratio(2, 20),
-            ])
-            .split(frame.size())
-        else {
-            panic!("afa")
-        };
 
-        let [_, both_centered, _] = *Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Ratio(1, 3),
-                Constraint::Min(1),
-                Constraint::Ratio(1, 3),
-            ])
-            .split(vertical_centered)
-        else {
-            panic!("adfikjge")
-        };
+        let mut run = 0;
+        if run == 0 {
 
-
-
-
-
-
-        let [_, serial_position_left_horizontal, _] = *Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                //Constraint::Ratio(1, 3),
-                Constraint::Percentage((5)),
-                Constraint::Min(0),
-                Constraint::Percentage((30)),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
-
-
-        
         let [_, serial_position_v, _] = *Layout::default()
             .horizontal_margin(4)
             .direction(Direction::Vertical)
@@ -213,27 +174,6 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
-
-
-
-
-
-
-
-        // let [container_port_input, container_help_text, container_error_message] =
-        //     *Layout::default()
-        //         .direction(Direction::Vertical)
-        //         .constraints([
-        //             Constraint::Length(3),
-        //             Constraint::Length(3),
-        //             Constraint::Min(1),
-        //         ])
-        //         .split(both_centered,)
-        // else {
-        //     panic!("adfhfla")
-        // };
-
-
         let mut text = "".to_owned();
         for n in 0..self.output_box.content().len()
         {
@@ -251,7 +191,9 @@ impl ComponentRender<()> for SetupPage {
                 .title("Serial ports"),
         )
         .scroll((self.scroll_position as u16, 0));
+        
         frame.render_widget(paragraph, serial_position_h);
+
         frame.render_stateful_widget(
         Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .symbols(scrollbar::VERTICAL)
@@ -263,28 +205,14 @@ impl ComponentRender<()> for SetupPage {
         }),
         &mut self.scrollbar_state.clone()
         );
-        
-        /////////////////////////////////
-
-
-
-
-
-
-
-
-
-
-
-
 
         let [_, boards_position_v, _] = *Layout::default()
         .horizontal_margin(4)
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage(4),
+            Constraint::Percentage(48),
             Constraint::Min(2),
-            Constraint::Percentage(70),
+            Constraint::Percentage(46),
         ])
         .split(frame.size())
          else {
@@ -295,86 +223,53 @@ impl ComponentRender<()> for SetupPage {
         let [_, boards_position_h, _] = *Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(50),
+                Constraint::Percentage(32),
                 Constraint::Min(2),
-                Constraint::Percentage(15),
+                Constraint::Percentage(32),
             ])
             .split(boards_position_v)
         else {
             panic!("adfikjge")
         };
 
+        let mut boards: Vec<String> = vec![];
+        let mut  boards_number = 0;
+        let lister = Lister::new();
+        let probe_list = lister.list_all();
 
-        //TODO BOARD INDENTIFICATION
+        let nr_probes = probe_list.len();
+
+        let mut probeinfo_list: Vec<ProbeInfo> = vec![];
+        
+        for n in 0..self.output_box.content().len()
+        {
+            if self.output_box.content()[n].port_name == format!("/dev/ttyACM{boards_number}")
+            {
+                let probe = ProbeInfo {number: boards_number, port: n, port_name: self.output_box.content()[n].port_name.clone(), port_probe: probe_list[boards_number].identifier.clone()};
+                
+                probeinfo_list[n] = probe;
+
+                let mut entry = format!("Port[{n}]: Name:{:?}, Board:{},", self.output_box.content()[n].port_name, probe_list[boards_number].identifier);
+
+                entry = entry.replace("\'", "");
+                boards.push(Line::from(entry).to_string());
+                boards_number += 1;
+            }
+        }
 
 
-        let paragraph = Paragraph::new("TODO: FIND BOARDS")
-        .style(Style::default().fg(Color::LightMagenta))
+        let paragraph = Paragraph::new(format!("   {}", boards[0]))
+        .style(Style::default().fg(Color::Cyan))
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .fg(Color::Yellow)
-                .title("Boards found"),
+                .title(format!(" Number of boards found: {} ",boards_number)).title_style(Style::default().fg(Color::Blue)),
         );
 
         frame.render_widget(paragraph, boards_position_h);
         
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // let [container_port_output, container_help_text, container_error_message] =
-        //     *Layout::default()
-        //         .direction(Direction::Horizontal)
-        //         .constraints([
-        //             Constraint::Length(100),
-        //             Constraint::Length(20),//available_ports.len().try_into().unwrap()),
-        //             Constraint::Min(0),
-        //         ])
-        //         .split(serial_position_h)
-        // else {
-        //     panic!("available ports output box paniced!")
-        // };
-
-
-        // self.output_box.render(
-        //     frame,
-        //     output_box::RenderProperties {
-        //         title: "Serial port".to_string(),
-        //         area: container_port_output,
-        //         border_color: Color::Yellow,
-        //         show_cursor: false,
-        //     },
-        // );
 
         let [_, help_text_v, _] = *Layout::default()
         .direction(Direction::Vertical)
@@ -445,5 +340,10 @@ impl ComponentRender<()> for SetupPage {
         );
 
         frame.render_widget(error_message, panic_h);
+        run = 1;
+    }
+    else {
+
+    }
     }
 }
