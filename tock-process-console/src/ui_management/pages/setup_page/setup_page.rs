@@ -264,7 +264,93 @@ impl ComponentRender<()> for SetupPage {
         &mut self.scrollbar_state.clone()
         );
         
+        /////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let [_, boards_position_v, _] = *Layout::default()
+        .horizontal_margin(4)
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Percentage(4),
+            Constraint::Min(2),
+            Constraint::Percentage(70),
+        ])
+        .split(frame.size())
+         else {
+            panic!("adfikjge")
+         };
+
+
+        let [_, boards_position_h, _] = *Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(50),
+                Constraint::Min(2),
+                Constraint::Percentage(15),
+            ])
+            .split(boards_position_v)
+        else {
+            panic!("adfikjge")
+        };
+
+
+        //TODO BOARD INDENTIFICATION
+
+
+        let paragraph = Paragraph::new("TODO: FIND BOARDS")
+        .style(Style::default().fg(Color::LightMagenta))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .fg(Color::Yellow)
+                .title("Boards found"),
+        );
+
+        frame.render_widget(paragraph, boards_position_h);
         
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // let [container_port_output, container_help_text, container_error_message] =
         //     *Layout::default()
