@@ -3,10 +3,10 @@
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
 use crate::{
-    board, state_store::{Action, BoardConnectionStatus, State}, ui_management::components::{input_box, output_box, probe_info, Component, ComponentRender, InputBox, OutputBox, ProbeInfo}
+    board, state_store::{Action, BoardConnectionStatus, State}, ui_management::components::{input_box, probe_info, Component, ComponentRender, InputBox, ProbeInfo}
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-use probe_rs::probe::{list::Lister, Probe};
+use probe_rs::probe::{self, list::Lister, Probe};
 use ratatui::{
     layout::{Alignment, Constraint, Flex, Layout, Margin}, prelude::Direction, style::{Color, Modifier, Style, Stylize}, symbols::scrollbar, text::{self, Line, Text}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, Wrap}
 };
@@ -33,7 +33,6 @@ impl From<&State> for Properties {
 
 /// Struct that handles setup of the console application
 pub struct SetupPage {
-    output_box: OutputBox,
     input_box: InputBox,
     action_sender: UnboundedSender<Action>,
     properties: Properties,
@@ -60,16 +59,19 @@ impl Component for SetupPage {
     where
         Self: Sized,
     {
+        let available_ports = match tokio_serial::available_ports() {
+            Ok(ports) => ports,
+            Err(error) => panic!("ports not found! : {}",error),
+        };
+
         let input_box = InputBox::new(state, screen_idx, action_sender.clone());
-        let output_box = OutputBox::new(state, screen_idx, action_sender.clone());
 
         let mut scroll_position = 0;
-        let mut scrollbar_state = ScrollbarState::new(output_box.content().len()).position(scroll_position);
+        let mut scrollbar_state = ScrollbarState::new(available_ports.len()).position(scroll_position);
 
         SetupPage {
             action_sender: action_sender.clone(),
             input_box,
-            output_box,
             properties: Properties::from(state),
             scrollbar_state,
             scroll_position,
@@ -128,7 +130,6 @@ impl Component for SetupPage {
         Self {
             properties: Properties::from(state),
             input_box: self.input_box,
-            output_box: self.output_box,
             action_sender: self.action_sender,
             scrollbar_state: self.scrollbar_state,
             scroll_position: self.scroll_position,
@@ -141,12 +142,6 @@ impl Component for SetupPage {
 impl ComponentRender<()> for SetupPage {
 
     fn render(&self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
-
-
-
-
-        let mut run = 0;
-        if run == 0 {
 
         let [_, serial_position_v, _] = *Layout::default()
             .horizontal_margin(4)
@@ -174,10 +169,15 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
+        let available_ports = match tokio_serial::available_ports() {
+            Ok(ports) => ports,
+            Err(error) => panic!("ports not found! : {}",error),
+        };
+
         let mut text = "".to_owned();
-        for n in 0..self.output_box.content().len()
+        for n in 0..available_ports.len()
         {
-            let serial_info =format!("Port[{n}](Name:{:#?}, Type:{:#?}), \n",self.output_box.content()[n].port_name, self.output_box.content()[n].port_type);
+            let serial_info =format!("Port[{n}](Name:{:#?}, Type:{:#?}), \n",available_ports[n].port_name, available_ports[n].port_type);
             text = text + &serial_info; 
             
         };
@@ -188,7 +188,7 @@ impl ComponentRender<()> for SetupPage {
             Block::default()
                 .borders(Borders::ALL)
                 .fg(Color::Yellow)
-                .title("Serial ports"),
+                .title(format!(" Serial ports - {} ",available_ports.len())),
         )
         .scroll((self.scroll_position as u16, 0));
         
@@ -232,39 +232,42 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
-        let mut boards: Vec<String> = vec![];
         let mut  boards_number = 0;
         let lister = Lister::new();
         let probe_list = lister.list_all();
 
-        let nr_probes = probe_list.len();
+        let mut nr_probes = probe_list.len();
 
         let mut probeinfo_list: Vec<ProbeInfo> = vec![];
         
-        for n in 0..self.output_box.content().len()
+        for n in 0..available_ports.len()
         {
-            if self.output_box.content()[n].port_name == format!("/dev/ttyACM{boards_number}")
+            if available_ports[n].port_name == format!("/dev/ttyACM{boards_number}")
             {
-                let probe = ProbeInfo {number: boards_number, port: n, port_name: self.output_box.content()[n].port_name.clone(), port_probe: probe_list[boards_number].identifier.clone()};
+                let probe = ProbeInfo {number: boards_number, port: n, port_name: available_ports[n].port_name.clone(), port_probe: probe_list[nr_probes-1].identifier.clone()};
                 
-                probeinfo_list[n] = probe;
-
-                let mut entry = format!("Port[{n}]: Name:{:?}, Board:{},", self.output_box.content()[n].port_name, probe_list[boards_number].identifier);
-
-                entry = entry.replace("\'", "");
-                boards.push(Line::from(entry).to_string());
+                probeinfo_list.push(probe);
                 boards_number += 1;
+                nr_probes-=1;
             }
         }
 
+        let mut text_probes: String = "".to_owned();
 
-        let paragraph = Paragraph::new(format!("   {}", boards[0]))
+        for n in 0..probeinfo_list.len()
+        {
+            let temp_info =format!("{}. Port[{}]: Name:{:?}, Board:{},",probeinfo_list[n].number()+1,probeinfo_list[n].port(),probeinfo_list[n].port_name(), probeinfo_list[n].port_probe());
+            text_probes = text_probes + &temp_info; 
+        }
+
+
+        let paragraph = Paragraph::new(format!("   {}", text_probes))
         .style(Style::default().fg(Color::Cyan))
         .block(
             Block::default()
                 .borders(Borders::ALL)
                 .fg(Color::Yellow)
-                .title(format!(" Number of boards found: {} ",boards_number)).title_style(Style::default().fg(Color::Blue)),
+                .title(format!(" Number of boards found: {} ",probe_list.len())).title_style(Style::default().fg(Color::Blue)),
         );
 
         frame.render_widget(paragraph, boards_position_h);
@@ -340,10 +343,5 @@ impl ComponentRender<()> for SetupPage {
         );
 
         frame.render_widget(error_message, panic_h);
-        run = 1;
-    }
-    else {
-
-    }
     }
 }
