@@ -6,11 +6,14 @@ use super::{Component, ComponentRender};
 use crate::state_store::{Action, State};
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::{
-    layout::Margin, prelude::Rect, style::{Color, Style, Styled, Stylize}, widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState}
+    layout::Margin,
+    prelude::Rect,
+    style::{Color, Style, Styled, Stylize},
+    widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
 };
+use std::fmt::Debug;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio_serial::SerialPortInfo;
-use std::fmt::Debug;
 
 pub struct OutputBox {
     content: Vec<SerialPortInfo>,
@@ -29,12 +32,11 @@ impl OutputBox {
         self.content.clear();
     }
 
-    pub fn new<>(
+    pub fn new(
         _state: &State,
         _screen_idx: Option<usize>,
         _action_sender: UnboundedSender<Action>,
     ) -> Self {
-
         let available_ports = match tokio_serial::available_ports() {
             Ok(ports) => ports,
             Err(error) => panic!("ports not found!"),
@@ -44,9 +46,6 @@ impl OutputBox {
             content: available_ports,
         }
     }
-
-
-    
 }
 
 pub struct RenderProperties {
@@ -60,11 +59,12 @@ impl ComponentRender<RenderProperties> for OutputBox {
     fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
         let mut text: String = "".to_owned();
 
-        for n in 0..self.content.len()
-        {
-            let serial_info =format!("Port[{n}](Name:{:#?}, Type:{:#?}), \n",self.content[n].port_name, self.content[n].port_type);
-            text = text + &serial_info; 
-            
+        for n in 0..self.content.len() {
+            let serial_info = format!(
+                "Port[{n}](Name:{:#?}, Type:{:#?}), \n",
+                self.content[n].port_name, self.content[n].port_type
+            );
+            text = text + &serial_info;
         }
 
         let output = Paragraph::new(text)
@@ -75,7 +75,5 @@ impl ComponentRender<RenderProperties> for OutputBox {
                     .fg(properties.border_color)
                     .title(properties.title.clone()),
             );
-
-        
     }
 }

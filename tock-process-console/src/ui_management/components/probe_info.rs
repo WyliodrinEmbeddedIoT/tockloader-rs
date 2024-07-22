@@ -2,14 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-pub struct ProbeInfo{
+#[derive(Debug)]
+pub struct ProbeInfo {
     pub(crate) number: usize,
     pub(crate) port: usize,
     pub(crate) port_name: String,
     pub(crate) port_probe: String,
 }
 
-impl ProbeInfo{
+impl ProbeInfo {
     pub fn number(&self) -> &usize {
         &self.number
     }
