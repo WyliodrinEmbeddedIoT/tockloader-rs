@@ -56,7 +56,7 @@ pub struct RenderProperties {
 }
 
 impl ComponentRender<RenderProperties> for OutputBox {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
+    fn render(&mut self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
         let mut text: String = "".to_owned();
 
         for n in 0..self.content.len() {

@@ -262,7 +262,11 @@ impl Component for ApplicationsPage {
 const NO_APP_SELECTED_MESSAE: &str = "Select an process to see its logs!";
 
 impl ComponentRender<apps_list::RenderProperties> for ApplicationsPage {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: apps_list::RenderProperties) {
+    fn render(
+        &mut self,
+        frame: &mut ratatui::prelude::Frame,
+        properties: apps_list::RenderProperties,
+    ) {
         let [container_active_app_header, container_content] = *Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Length(4), Constraint::Min(1)].as_ref())

@@ -126,7 +126,7 @@ pub struct RenderProperties {
 }
 
 impl ComponentRender<RenderProperties> for InputBox {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
+    fn render(&mut self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
         let input = Paragraph::new(self.text.as_str())
             .style(Style::default().fg(Color::Cyan))
             .block(

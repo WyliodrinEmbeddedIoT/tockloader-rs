@@ -4,17 +4,12 @@
 
 #[derive(Debug)]
 pub struct ProbeInfo {
-    pub(crate) number: usize,
     pub(crate) port: usize,
     pub(crate) port_name: String,
     pub(crate) port_probe: String,
 }
 
 impl ProbeInfo {
-    pub fn number(&self) -> &usize {
-        &self.number
-    }
-
     pub fn port(&self) -> &usize {
         &self.port
     }
@@ -25,13 +20,5 @@ impl ProbeInfo {
 
     pub fn port_probe(&self) -> &String {
         &self.port_probe
-    }
-
-    pub fn number_add(&mut self) {
-        self.number += 1;
-    }
-
-    pub fn number_sub(&mut self) {
-        self.number -= 1;
     }
 }

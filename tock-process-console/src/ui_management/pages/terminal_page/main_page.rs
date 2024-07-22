@@ -169,7 +169,7 @@ impl Component for MainPage {
 }
 
 impl ComponentRender<()> for MainPage {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
+    fn render(&mut self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
         let [left, right] = *Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(80), Constraint::Percentage(20)].as_ref())

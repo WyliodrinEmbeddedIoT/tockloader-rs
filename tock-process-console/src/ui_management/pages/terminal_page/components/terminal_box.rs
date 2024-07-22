@@ -253,7 +253,7 @@ impl HasUsageInfo for TerminalBox {
 }
 
 impl ComponentRender<RenderProps> for TerminalBox {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProps) {
+    fn render(&mut self, frame: &mut ratatui::prelude::Frame, properties: RenderProps) {
         let chunks = ratatui::layout::Layout::default()
             .direction(ratatui::layout::Direction::Vertical)
             .margin(1)

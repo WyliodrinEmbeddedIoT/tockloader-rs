@@ -184,7 +184,7 @@ pub struct RenderProperties {
 }
 
 impl ComponentRender<RenderProperties> for AppsList {
-    fn render(&self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
+    fn render(&mut self, frame: &mut ratatui::prelude::Frame, properties: RenderProperties) {
         let active_application = self.active_app.clone();
 
         let apps_list: Vec<ListItem> = self
