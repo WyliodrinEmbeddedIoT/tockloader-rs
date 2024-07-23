@@ -64,17 +64,19 @@ impl SetupPage {
                     Some(port) => port,
                     None => return, // Do nothing when there are no ports selected
                 }
-            },
+            }
             ShowState::ShowAllSerialPorts => {
                 match self.scrollbar_state_serial.selected() {
                     Some(port) => port,
                     None => return, // Do nothing when there are no ports selected
                 }
-            },
+            }
         };
 
         let port = probeinfo[port_number].clone();
-        self.action_sender.send(Action::ConnectToBoard { port }).expect("Expected action receiver to be open.");
+        self.action_sender
+            .send(Action::ConnectToBoard { port })
+            .expect("Expected action receiver to be open.");
     }
 }
 

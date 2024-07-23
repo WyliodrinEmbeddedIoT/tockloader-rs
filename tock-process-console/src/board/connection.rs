@@ -86,12 +86,10 @@ impl ConnectionHandler {
                             Some(board_message) => {
                                 let app_name = if board_message.is_app {
                                     format!("app_{}", board_message.pid)
+                                } else if board_message.pid == 0 {
+                                    String::from("debug")
                                 } else {
-                                    if board_message.pid == 0 {
-                                        String::from("debug")
-                                    } else {
-                                        String::from("kernel")
-                                    }
+                                    String::from("kernel")
                                 };
 
                                 let _ = self.event_writer.send(

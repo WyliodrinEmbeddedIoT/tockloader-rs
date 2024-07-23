@@ -163,8 +163,8 @@ impl ApplicationsPage {
         self.active_section = None;
     }
 
-        // TODO(NegrilaRares): investigate if we need port
-        #[allow(dead_code)]
+    // TODO(NegrilaRares): investigate if we need port
+    #[allow(dead_code)]
     pub fn set_screen_idx(&mut self, index: usize) {
         self.screen_idx = index;
 

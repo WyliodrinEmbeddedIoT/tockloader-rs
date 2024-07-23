@@ -24,11 +24,11 @@ use super::{
 };
 
 struct Properties {
-        // TODO(NegrilaRares): investigate if we need port
-        #[allow(dead_code)]
+    // TODO(NegrilaRares): investigate if we need port
+    #[allow(dead_code)]
     active_apps: Vec<(usize, Option<String>)>,
-        // TODO(NegrilaRares): investigate if we need port
-        #[allow(dead_code)]
+    // TODO(NegrilaRares): investigate if we need port
+    #[allow(dead_code)]
     app_data_map: HashMap<String, AppData>,
 }
 
@@ -43,8 +43,8 @@ impl From<&State> for Properties {
 
 pub struct MainPage {
     pub action_sender: UnboundedSender<Action>,
-        // TODO(NegrilaRares): investigate if we need port
-        #[allow(dead_code)]
+    // TODO(NegrilaRares): investigate if we need port
+    #[allow(dead_code)]
     properties: Properties,
     pub hovered_screen: usize,
     pub active_screen: Option<usize>,

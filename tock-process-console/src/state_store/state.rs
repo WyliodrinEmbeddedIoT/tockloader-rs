@@ -57,8 +57,12 @@ pub enum BoardConnectionStatus {
     Connecting,
     // TODO(NegrilaRares): investigate if we need port
     #[allow(dead_code)]
-    Connected { port: String },
-    Errored { err: String },
+    Connected {
+        port: String,
+    },
+    Errored {
+        err: String,
+    },
 }
 
 /// State struct is holding the state of the entire application
