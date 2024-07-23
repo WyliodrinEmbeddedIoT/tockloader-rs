@@ -191,32 +191,28 @@ impl Component for SetupPage {
             KeyCode::Up => {
                 if self.showed_serials == true {
                     self.scrollbar_state_serial.select_previous()
-                }
-                else if self.showed_boards == true {
+                } else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::Down => {
                 if self.showed_serials == true {
                     self.scrollbar_state_serial.select_next()
-                }
-                else if self.showed_boards == true {
+                } else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_next()
                 }
             }
             KeyCode::PageUp => {
                 if self.showed_serials == true {
                     self.scrollbar_state_serial.select_previous()
-                }
-                else if self.showed_boards == true {
+                } else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::PageDown => {
                 if self.showed_serials == true {
                     self.scrollbar_state_serial.select_next()
-                }
-                else if self.showed_boards == true {
+                } else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_next()
                 }
             }
@@ -345,8 +341,7 @@ impl ComponentRender<()> for SetupPage {
                 Ok(_) => {}
                 Err(error) => println!("{}", error),
             };
-        }
-        else if self.showed_serials == true {
+        } else if self.showed_serials == true {
             match self.probeinfo_sender.send(serial_ports) {
                 Ok(_) => {}
                 Err(error) => println!("{}", error),
@@ -425,14 +420,8 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
-        if self.showed_boards == true {
-            let show_text = Paragraph::new(Text::from("Press A to display all serial ports."));
-            frame.render_widget(show_text, show_text_h);
-        }
-        else if self.showed_serials == true {
-            let show_text = Paragraph::new(Text::from("Press B to display all boards found."));
-            frame.render_widget(show_text, show_text_h);
-        }
+        let show_text = Paragraph::new(Text::from("Press A to switch display mode."));
+        frame.render_widget(show_text, show_text_h);
 
         let [_, enter_text_v, _] = *Layout::default()
             .direction(Direction::Vertical)

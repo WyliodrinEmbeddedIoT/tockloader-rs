@@ -33,7 +33,6 @@ impl ConnectionHandler {
 
         #[cfg(unix)]
         port.set_exclusive(false)?;
-        
 
         let (port_reader, port_writer) = split(port);
 
