@@ -59,8 +59,8 @@ pub struct SetupPage {
     scrollbar_state_boards: ListState,
     probeinfo_sender: Sender<Vec<String>>,
     probeinfo_receiver: Receiver<Vec<String>>,
-    showed_serials: usize,
-    showed_boards: usize,
+    showed_serials: bool,
+    showed_boards: bool,
 }
 
 impl SetupPage {
@@ -76,20 +76,20 @@ impl SetupPage {
 
         let mut port_number = 0;
 
-        if self.showed_boards == 1 {
+        if self.showed_boards == true {
             port_number = match self.scrollbar_state_boards.selected() {
                 Some(num) => num,
                 None => panic!("Error selecting the board!"),
             };
         }
-        if self.showed_serials == 1 {
+        if self.showed_serials == true {
             port_number = match self.scrollbar_state_serial.selected() {
                 Some(num) => num,
                 None => panic!("Error selecting the board!"),
             };
         }
 
-        let port = probeinfo[port_number].clone(); //&probeinfo[self.scroll_boards as usize];
+        let port = probeinfo[port_number].clone();
         let _ = self.action_sender.send(Action::ConnectToBoard {
             port: port.to_string(),
         });
@@ -120,8 +120,8 @@ impl Component for SetupPage {
         let mut scrollbar_state_boards = ListState::default();
         scrollbar_state_boards.select_first();
 
-        let mut showed_serials = 0;
-        let mut showed_boards = 1;
+        let mut showed_serials = false;
+        let mut showed_boards = true;
 
         let (tx, rx) = channel();
 
@@ -175,48 +175,48 @@ impl Component for SetupPage {
                 }
             }
             KeyCode::Char('a') => {
-                if self.showed_serials == 0 {
-                    self.showed_serials = 1;
-                    self.showed_boards = 0;
+                if self.showed_serials == false {
+                    self.showed_serials = true;
+                    self.showed_boards = false;
                     self.scrollbar_state_serial.select_first();
                 }
             }
             KeyCode::Char('b') => {
-                if self.showed_boards == 0 {
-                    self.showed_serials = 0;
-                    self.showed_boards = 1;
+                if self.showed_boards == false {
+                    self.showed_serials = false;
+                    self.showed_boards = true;
                     self.scrollbar_state_boards.select_first();
                 }
             }
             KeyCode::Up => {
-                if self.showed_serials == 1 {
+                if self.showed_serials == true {
                     self.scrollbar_state_serial.select_previous()
                 }
-                if self.showed_boards == 1 {
+                else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::Down => {
-                if self.showed_serials == 1 {
+                if self.showed_serials == true {
                     self.scrollbar_state_serial.select_next()
                 }
-                if self.showed_boards == 1 {
+                else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_next()
                 }
             }
             KeyCode::PageUp => {
-                if self.showed_serials == 1 {
+                if self.showed_serials == true {
                     self.scrollbar_state_serial.select_previous()
                 }
-                if self.showed_boards == 1 {
+                else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::PageDown => {
-                if self.showed_serials == 1 {
+                if self.showed_serials == true {
                     self.scrollbar_state_serial.select_next()
                 }
-                if self.showed_boards == 1 {
+                else if self.showed_boards == true {
                     self.scrollbar_state_boards.select_next()
                 }
             }
@@ -300,7 +300,7 @@ impl ComponentRender<()> for SetupPage {
             serial_ports.push(available_ports[n].port_name.clone());
         }
 
-        if self.showed_serials == 1 {
+        if self.showed_serials == true {
             let list = List::new(vec_serial)
                 .style(Style::default().fg(Color::Cyan))
                 .block(
@@ -319,7 +319,7 @@ impl ComponentRender<()> for SetupPage {
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_serial);
         }
 
-        if self.showed_boards == 1 {
+        if self.showed_boards == true {
             let boards_found = vec_boards.len();
 
             let list = List::new(vec_boards)
@@ -340,14 +340,13 @@ impl ComponentRender<()> for SetupPage {
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_boards);
         }
 
-        if self.showed_boards == 1 {
+        if self.showed_boards == true {
             match self.probeinfo_sender.send(board_ports) {
                 Ok(_) => {}
                 Err(error) => println!("{}", error),
             };
         }
-
-        if self.showed_serials == 1 {
+        else if self.showed_serials == true {
             match self.probeinfo_sender.send(serial_ports) {
                 Ok(_) => {}
                 Err(error) => println!("{}", error),
@@ -381,7 +380,7 @@ impl ComponentRender<()> for SetupPage {
         let [_, panic_v, _] = *Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(71),
+                Constraint::Percentage(75),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
             ])
@@ -405,7 +404,7 @@ impl ComponentRender<()> for SetupPage {
         let [_, show_text_v, _] = *Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(67),
+                Constraint::Percentage(69),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
             ])
@@ -426,12 +425,11 @@ impl ComponentRender<()> for SetupPage {
             panic!("adfikjge")
         };
 
-        if self.showed_boards == 1 {
+        if self.showed_boards == true {
             let show_text = Paragraph::new(Text::from("Press A to display all serial ports."));
             frame.render_widget(show_text, show_text_h);
         }
-
-        if self.showed_serials == 1 {
+        else if self.showed_serials == true {
             let show_text = Paragraph::new(Text::from("Press B to display all boards found."));
             frame.render_widget(show_text, show_text_h);
         }
@@ -439,7 +437,7 @@ impl ComponentRender<()> for SetupPage {
         let [_, enter_text_v, _] = *Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(69),
+                Constraint::Percentage(72),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
             ])
