@@ -4,6 +4,7 @@
 
 use anyhow::Error;
 use bytes::Bytes;
+use probe_rs::config;
 use tokio::{
     io::{split, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},
@@ -30,9 +31,9 @@ impl ConnectionHandler {
     ) -> Result<(UnboundedReceiver<Event>, UnboundedSender<Bytes>), Error> {
         let mut port: SerialStream = tokio_serial::new(tty, 115200).open_native_async()?;
 
-        if cfg!(unix) {
-            port.set_exclusive(false)?;
-        }
+        #[cfg(unix)]
+        port.set_exclusive(false)?;
+        
 
         let (port_reader, port_writer) = split(port);
 
