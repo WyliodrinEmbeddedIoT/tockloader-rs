@@ -55,6 +55,8 @@ impl AppData {
 pub enum BoardConnectionStatus {
     Uninitialized,
     Connecting,
+    // TODO(NegrilaRares): investigate if we need port
+    #[allow(dead_code)]
     Connected { port: String },
     Errored { err: String },
 }

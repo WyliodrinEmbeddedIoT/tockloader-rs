@@ -59,7 +59,7 @@ impl StateStore {
                             if !state.active_apps.is_empty() {
                                 command_writer.send(
                                     content
-                                );
+                                ).expect("Expected command reader to be open.");
                             }
                         },
                         Action::AddScreen { screen_idx } => {

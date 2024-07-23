@@ -5,13 +5,9 @@
 mod cli;
 mod errors;
 mod interfaces;
-use std::time::Duration;
 
 use cli::make_cli;
 use errors::TockloaderError;
-use interfaces::{build_interface, traits::*};
-use tokio::time::sleep;
-
 use tock_process_console;
 
 #[tokio::main]
@@ -32,7 +28,7 @@ async fn run() -> Result<(), TockloaderError> {
     }
 
     match matches.subcommand() {
-        Some(("listen", sub_matches)) => {
+        Some(("listen", _sub_matches)) => {
             let _ = match tock_process_console::run().await {
                 Ok(()) => {}
                 Err(_) => {

@@ -6,9 +6,7 @@ use std::vec;
 
 use crate::{
     state_store::{Action, BoardConnectionStatus, State},
-    ui_management::components::{
-        Component, ComponentRender
-    },
+    ui_management::components::{Component, ComponentRender},
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{
@@ -16,9 +14,7 @@ use ratatui::{
     prelude::Direction,
     style::{Color, Modifier, Style, Stylize},
     text::Text,
-    widgets::{
-        Block, BorderType, Borders, List, ListDirection, ListState, Paragraph, Wrap,
-    },
+    widgets::{Block, BorderType, Borders, List, ListDirection, ListState, Paragraph, Wrap},
 };
 
 use tokio::sync::{mpsc::UnboundedSender, watch};
@@ -29,7 +25,7 @@ struct Properties {
 }
 
 #[derive(PartialEq)]
-pub enum ShowState{
+pub enum ShowState {
     ShowBoardsOnly,
     ShowAllSerialPorts,
 }
@@ -61,26 +57,33 @@ pub struct SetupPage {
 impl SetupPage {
     fn set_port(&mut self) {
         let probeinfo = self.probeinfo_receiver.borrow_and_update();
-        
-        let mut port_number = 0;
 
-        if self.show_state == ShowState::ShowBoardsOnly {
-            port_number = self.scrollbar_state_boards.selected().unwrap();
-        }
-        else if self.show_state == ShowState::ShowAllSerialPorts {
-            port_number = self.scrollbar_state_serial.selected().unwrap();   
-        }
+        let port_number = match self.show_state {
+            ShowState::ShowBoardsOnly => {
+                match self.scrollbar_state_boards.selected() {
+                    Some(port) => port,
+                    None => return, // Do nothing when there are no ports selected
+                }
+            },
+            ShowState::ShowAllSerialPorts => {
+                match self.scrollbar_state_serial.selected() {
+                    Some(port) => port,
+                    None => return, // Do nothing when there are no ports selected
+                }
+            },
+        };
 
         let port = probeinfo[port_number].clone();
-        let _sending_port = match self.action_sender.send(Action::ConnectToBoard {port}){
-            Ok(data) => data,
-            Err(error) => panic!("While trying to send selected port: {}", error),
-        };
+        self.action_sender.send(Action::ConnectToBoard { port }).expect("Expected action receiver to be open.");
     }
 }
 
 impl Component for SetupPage {
-    fn new(state: &State, _screen_idx: Option<usize>, action_sender: UnboundedSender<Action>) -> Self
+    fn new(
+        state: &State,
+        _screen_idx: Option<usize>,
+        action_sender: UnboundedSender<Action>,
+    ) -> Self
     where
         Self: Sized,
     {
@@ -89,7 +92,6 @@ impl Component for SetupPage {
 
         let mut scrollbar_state_boards = ListState::default();
         scrollbar_state_boards.select_first();
-
 
         let collector: Vec<String> = vec![];
         let (probeinfo_sender, probeinfo_receiver) = watch::channel(collector);
@@ -127,13 +129,10 @@ impl Component for SetupPage {
                 }
             }
             KeyCode::Char('a') => {
-                if self.show_state == ShowState::ShowBoardsOnly
-                {
+                if self.show_state == ShowState::ShowBoardsOnly {
                     self.show_state = ShowState::ShowAllSerialPorts;
                     self.scrollbar_state_serial.select_first();
-                }
-                else if self.show_state == ShowState::ShowAllSerialPorts
-                {
+                } else if self.show_state == ShowState::ShowAllSerialPorts {
                     self.show_state = ShowState::ShowBoardsOnly;
                     self.scrollbar_state_boards.select_first();
                 }
@@ -198,20 +197,16 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(35),
             ]);
 
-            let [_, serial_position_v, _] = temp_serial_position_v.areas(frame.size());
+        let [_, serial_position_v, _] = temp_serial_position_v.areas(frame.size());
 
-        let temp_serial_position_h= Layout::default()
+        let temp_serial_position_h = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(18),
             ]);
-            let [_, serial_position_h, _] = temp_serial_position_h.areas(serial_position_v);
-
-
-
-        
+        let [_, serial_position_h, _] = temp_serial_position_h.areas(serial_position_v);
 
         let available_ports = match tokio_serial::available_ports() {
             Ok(ports) => ports,
@@ -258,7 +253,7 @@ impl ComponentRender<()> for SetupPage {
 
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_serial);
         }
-        
+
         if self.show_state == ShowState::ShowBoardsOnly {
             let boards_found = vec_boards.len();
 
@@ -279,7 +274,7 @@ impl ComponentRender<()> for SetupPage {
 
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_boards);
         }
-        
+
         if self.show_state == ShowState::ShowBoardsOnly {
             match self.probeinfo_sender.send(board_ports) {
                 Ok(data) => data,
@@ -300,7 +295,7 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(10),
             ]);
 
-            let [_, help_text_v, _] = temp_help_text_v.areas(frame.size());
+        let [_, help_text_v, _] = temp_help_text_v.areas(frame.size());
 
         let temp_help_text_h = Layout::default()
             .direction(Direction::Horizontal)
@@ -310,7 +305,7 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(35),
             ]);
 
-            let [_, help_text_h, _] = temp_help_text_h.areas(help_text_v);
+        let [_, help_text_h, _] = temp_help_text_h.areas(help_text_v);
 
         let temp_panic_v = Layout::default()
             .direction(Direction::Vertical)
@@ -319,8 +314,8 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Min(2),
                 Constraint::Percentage(10),
             ]);
-            
-            let [_, panic_v, _] = temp_panic_v.areas(frame.size());
+
+        let [_, panic_v, _] = temp_panic_v.areas(frame.size());
 
         let temp_panic_h = Layout::default()
             .direction(Direction::Horizontal)
@@ -330,9 +325,7 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(35),
             ]);
 
-            let [_, panic_h, _] = temp_panic_h.areas(panic_v);
-
-
+        let [_, panic_h, _] = temp_panic_h.areas(panic_v);
 
         let temp_show_text_v = Layout::default()
             .direction(Direction::Vertical)
@@ -341,7 +334,6 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Min(2),
                 Constraint::Percentage(10),
             ]);
-
 
         let [_, show_text_v, _] = temp_show_text_v.areas(frame.size());
 
@@ -366,7 +358,7 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(10),
             ]);
 
-            let [_, enter_text_v, _] = temp_enter_text_v.areas(frame.size());
+        let [_, enter_text_v, _] = temp_enter_text_v.areas(frame.size());
 
         let temp_enter_text_h = Layout::default()
             .direction(Direction::Horizontal)
@@ -376,7 +368,7 @@ impl ComponentRender<()> for SetupPage {
                 Constraint::Percentage(35),
             ]);
 
-            let [_, enter_text_h, _] = temp_enter_text_h.areas(enter_text_v);
+        let [_, enter_text_h, _] = temp_enter_text_h.areas(enter_text_v);
 
         let help_text = Paragraph::new(Text::from("Press Enter to select highlighted port."));
         frame.render_widget(help_text, enter_text_h);

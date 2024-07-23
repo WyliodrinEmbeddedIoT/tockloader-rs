@@ -21,6 +21,8 @@ use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Clone)]
 struct AppState {
+        // TODO(NegrilaRares): investigate if we need port
+        #[allow(dead_code)]
     pub pid: String,
     pub name: String,
     pub has_new_input: bool,
@@ -91,7 +93,7 @@ impl AppsList {
         self.list_state.select(Some(index));
     }
 
-    pub(super) fn apps(&self) -> &Vec<AppState> {
+    fn apps(&self) -> &Vec<AppState> {
         &self.properties.apps
     }
 

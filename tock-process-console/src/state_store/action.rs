@@ -8,9 +8,11 @@ use bytes::Bytes;
 pub enum Action {
     ConnectToBoard { port: String },
     AddScreen { screen_idx: usize },
+    #[allow(dead_code)]
     RemoveSreen { screend_idx: usize },
     SelectApplication { screen_idx: usize, app_name: String },
     SendMessage { content: Bytes },
+    #[allow(dead_code)]
     ResizeScreen { rows: usize, columns: usize },
     Exit,
 }

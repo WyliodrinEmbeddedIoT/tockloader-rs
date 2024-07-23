@@ -33,6 +33,8 @@ use crate::{
 struct Properties {
     /// Active application that is displayed to the user
     active_apps: Vec<(usize, Option<String>)>,
+        // TODO(NegrilaRares): investigate if we need port
+        #[allow(dead_code)]
     app_data_map: HashMap<String, AppData>,
     apps_parsers_map: HashMap<String, Arc<Mutex<Parser>>>,
 }
@@ -58,6 +60,8 @@ pub struct TerminalBox {
 }
 
 impl TerminalBox {
+        // TODO(NegrilaRares): investigate if we need port
+        #[allow(dead_code)]
     fn get_app_data(&self, name: &str) -> Option<&AppData> {
         self.properties.app_data_map.get(name)
     }
@@ -217,6 +221,8 @@ impl SectionActivation for TerminalBox {
 pub struct RenderProps {
     pub area: Rect,
     pub border_color: Color,
+        // TODO(NegrilaRares): investigate if we need port
+        #[allow(dead_code)]
     pub show_cursor: bool,
 }
 
