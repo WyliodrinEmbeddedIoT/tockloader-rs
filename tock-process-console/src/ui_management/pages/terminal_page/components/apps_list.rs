@@ -17,7 +17,6 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, ListState},
 };
-use std::{fs::OpenOptions, io::Write};
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Clone)]

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use std::{collections::HashMap, fs::OpenOptions, io::Write};
+use std::collections::HashMap;
 
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::{

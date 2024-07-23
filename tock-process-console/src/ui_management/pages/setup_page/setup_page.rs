@@ -2,37 +2,36 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use std::{
-    sync::mpsc::{channel, Receiver, Sender},
-    vec,
-};
+use std::vec;
 
 use crate::{
-    board,
     state_store::{Action, BoardConnectionStatus, State},
     ui_management::components::{
-        input_box, probe_info, Component, ComponentRender, InputBox, ProbeInfo,
+        Component, ComponentRender
     },
 };
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
-use probe_rs::probe::{self, list::Lister, Probe};
 use ratatui::{
-    layout::{Alignment, Constraint, Flex, Layout, Margin},
+    layout::{Constraint, Layout},
     prelude::Direction,
-    style::{palette::tailwind::SLATE, Color, Modifier, Style, Styled, Stylize},
-    symbols::scrollbar,
-    text::{self, Line, Text},
+    style::{Color, Modifier, Style, Stylize},
+    text::Text,
     widgets::{
-        Block, BorderType, Borders, List, ListDirection, ListItem, ListState, Paragraph, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, Wrap,
+        Block, BorderType, Borders, List, ListDirection, ListState, Paragraph, Wrap,
     },
 };
 
-use tokio::sync::{mpsc::UnboundedSender, oneshot};
-use tokio_serial::{SerialPort, SerialPortInfo, SerialPortType, UsbPortInfo};
+use tokio::sync::{mpsc::UnboundedSender, watch};
+use tokio_serial::SerialPortType;
 
 struct Properties {
     error_message: Option<String>,
+}
+
+#[derive(PartialEq)]
+pub enum ShowState{
+    ShowBoardsOnly,
+    ShowAllSerialPorts,
 }
 
 impl From<&State> for Properties {
@@ -48,96 +47,63 @@ impl From<&State> for Properties {
     }
 }
 
-struct EventHandler {}
-
 /// Struct that handles setup of the console application
 pub struct SetupPage {
-    input_box: InputBox,
     action_sender: UnboundedSender<Action>,
     properties: Properties,
     scrollbar_state_serial: ListState,
     scrollbar_state_boards: ListState,
-    probeinfo_sender: Sender<Vec<String>>,
-    probeinfo_receiver: Receiver<Vec<String>>,
-    showed_serials: bool,
-    showed_boards: bool,
+    probeinfo_sender: watch::Sender<Vec<String>>,
+    probeinfo_receiver: watch::Receiver<Vec<String>>,
+    show_state: ShowState,
 }
 
 impl SetupPage {
     fn set_port(&mut self) {
-        let probeinfo = match self.probeinfo_receiver.try_recv() {
-            Ok(probeinfo) => probeinfo,
-            Err(error) => panic!("{}", error),
-        };
-
-        if probeinfo.is_empty() {
-            print!("No Boards Found!")
-        }
-
+        let probeinfo = self.probeinfo_receiver.borrow_and_update();
+        
         let mut port_number = 0;
 
-        if self.showed_boards == true {
-            port_number = match self.scrollbar_state_boards.selected() {
-                Some(num) => num,
-                None => panic!("Error selecting the board!"),
-            };
+        if self.show_state == ShowState::ShowBoardsOnly {
+            port_number = self.scrollbar_state_boards.selected().unwrap();
         }
-        if self.showed_serials == true {
-            port_number = match self.scrollbar_state_serial.selected() {
-                Some(num) => num,
-                None => panic!("Error selecting the board!"),
-            };
+        else if self.show_state == ShowState::ShowAllSerialPorts {
+            port_number = self.scrollbar_state_serial.selected().unwrap();   
         }
 
         let port = probeinfo[port_number].clone();
-        let _ = self.action_sender.send(Action::ConnectToBoard {
-            port: port.to_string(),
-        });
+        let _sending_port = match self.action_sender.send(Action::ConnectToBoard {port}){
+            Ok(data) => data,
+            Err(error) => panic!("While trying to send selected port: {}", error),
+        };
     }
 }
 
 impl Component for SetupPage {
-    fn new(state: &State, screen_idx: Option<usize>, action_sender: UnboundedSender<Action>) -> Self
+    fn new(state: &State, _screen_idx: Option<usize>, action_sender: UnboundedSender<Action>) -> Self
     where
         Self: Sized,
     {
-        let available_ports = match tokio_serial::available_ports() {
-            Ok(ports) => ports,
-            Err(error) => panic!("ports not found! : {}", error),
-        };
-
-        let input_box = InputBox::new(state, screen_idx, action_sender.clone());
-
-        let mut board_scroll_number = 0;
-        for n in 0..available_ports.len() {
-            if available_ports[n].port_name.starts_with("/dev/ttyACM") {
-                board_scroll_number += 1;
-            }
-        }
         let mut scrollbar_state_serial = ListState::default();
         scrollbar_state_serial.select_first();
 
         let mut scrollbar_state_boards = ListState::default();
         scrollbar_state_boards.select_first();
 
-        let mut showed_serials = false;
-        let mut showed_boards = true;
 
-        let (tx, rx) = channel();
+        let collector: Vec<String> = vec![];
+        let (probeinfo_sender, probeinfo_receiver) = watch::channel(collector);
 
-        let probeinfo_sender = tx;
-        let probeinfo_receiver = rx;
+        let show_state = ShowState::ShowBoardsOnly;
 
         SetupPage {
             action_sender: action_sender.clone(),
-            input_box,
             properties: Properties::from(state),
             scrollbar_state_serial,
             scrollbar_state_boards,
             probeinfo_sender,
             probeinfo_receiver,
-            showed_serials,
-            showed_boards,
+            show_state,
         }
         .update_with_state(state)
     }
@@ -147,22 +113,8 @@ impl Component for SetupPage {
     }
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) {
-        self.input_box.handle_key_event(key);
-
         if key.kind != KeyEventKind::Press {
             return;
-        }
-
-        let available_ports = match tokio_serial::available_ports() {
-            Ok(ports) => ports,
-            Err(error) => panic!("ports not found! : {}", error),
-        };
-
-        let mut board_scroll_number = 0;
-        for n in 0..available_ports.len() {
-            if available_ports[n].port_name.starts_with("/dev/ttyACM") {
-                board_scroll_number += 1;
-            }
         }
 
         match key.code {
@@ -175,44 +127,42 @@ impl Component for SetupPage {
                 }
             }
             KeyCode::Char('a') => {
-                if self.showed_serials == false {
-                    self.showed_serials = true;
-                    self.showed_boards = false;
+                if self.show_state == ShowState::ShowBoardsOnly
+                {
+                    self.show_state = ShowState::ShowAllSerialPorts;
                     self.scrollbar_state_serial.select_first();
                 }
-            }
-            KeyCode::Char('b') => {
-                if self.showed_boards == false {
-                    self.showed_serials = false;
-                    self.showed_boards = true;
+                else if self.show_state == ShowState::ShowAllSerialPorts
+                {
+                    self.show_state = ShowState::ShowBoardsOnly;
                     self.scrollbar_state_boards.select_first();
                 }
             }
             KeyCode::Up => {
-                if self.showed_serials == true {
+                if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_previous()
-                } else if self.showed_boards == true {
+                } else if self.show_state == ShowState::ShowBoardsOnly {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::Down => {
-                if self.showed_serials == true {
+                if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_next()
-                } else if self.showed_boards == true {
+                } else if self.show_state == ShowState::ShowBoardsOnly {
                     self.scrollbar_state_boards.select_next()
                 }
             }
             KeyCode::PageUp => {
-                if self.showed_serials == true {
+                if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_previous()
-                } else if self.showed_boards == true {
+                } else if self.show_state == ShowState::ShowBoardsOnly {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
             KeyCode::PageDown => {
-                if self.showed_serials == true {
+                if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_next()
-                } else if self.showed_boards == true {
+                } else if self.show_state == ShowState::ShowBoardsOnly {
                     self.scrollbar_state_boards.select_next()
                 }
             }
@@ -226,14 +176,12 @@ impl Component for SetupPage {
     {
         Self {
             properties: Properties::from(state),
-            input_box: self.input_box,
             action_sender: self.action_sender,
             scrollbar_state_serial: self.scrollbar_state_serial,
             scrollbar_state_boards: self.scrollbar_state_boards,
             probeinfo_sender: self.probeinfo_sender,
             probeinfo_receiver: self.probeinfo_receiver,
-            showed_serials: self.showed_serials,
-            showed_boards: self.showed_boards,
+            show_state: self.show_state,
         }
     }
 
@@ -242,61 +190,57 @@ impl Component for SetupPage {
 
 impl ComponentRender<()> for SetupPage {
     fn render(&mut self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
-        let [_, serial_position_v, _] = *Layout::default()
+        let temp_serial_position_v = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Percentage(35),
                 Constraint::Min(2),
                 Constraint::Percentage(35),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, serial_position_h, _] = *Layout::default()
+            let [_, serial_position_v, _] = temp_serial_position_v.areas(frame.size());
+
+        let temp_serial_position_h= Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(18),
-            ])
-            .split(serial_position_v)
-        else {
-            panic!("adfikjge")
-        };
+            ]);
+            let [_, serial_position_h, _] = temp_serial_position_h.areas(serial_position_v);
+
+
+
+        
 
         let available_ports = match tokio_serial::available_ports() {
             Ok(ports) => ports,
-            Err(error) => panic!("ports not found! : {}", error),
+            Err(error) => panic!("Error while searching for ports: {}", error),
         };
 
         let mut vec_serial: Vec<Text> = vec![];
         let mut vec_boards: Vec<Text> = vec![];
         let mut board_ports: Vec<String> = vec![];
         let mut serial_ports: Vec<String> = vec![];
-        for n in 0..available_ports.len() {
-            let mut k = 0;
-            let product = match &available_ports[n].port_type {
-                SerialPortType::UsbPort(usb) => {
-                    k = 1;
-                    usb.product.clone()
-                }
+        for (port_index, port) in available_ports.iter().enumerate() {
+            let product = match &port.port_type {
+                SerialPortType::UsbPort(usb) => usb.product.clone(),
                 SerialPortType::PciPort => Some("PciPort".to_string()),
                 SerialPortType::BluetoothPort => Some("BluetoothPort".to_string()),
                 SerialPortType::Unknown => Some("Unknown".to_string()),
             };
-
-            let temp_serial = format! {"Port[{n}](Name:{:#?}, Type:{}), \n", available_ports[n].port_name, Option::expect(product, "Port type not found!")};
-            if k == 1 {
+            let temp_serial = format! {"Port[{port_index}](Name:{:#?}, Type:{}), \n", port.port_name, product.unwrap_or("Unknown".to_string())};
+            if let SerialPortType::UsbPort(_) = port.port_type {
+                // Add to boards only if its a USB type.
                 vec_boards.push(temp_serial.clone().into());
-                board_ports.push(available_ports[n].port_name.clone());
+                board_ports.push(port.port_name.clone());
             }
+            // Fall-through, add to serial regardless of type.
             vec_serial.push(temp_serial.into());
-            serial_ports.push(available_ports[n].port_name.clone());
+            serial_ports.push(port.port_name.clone());
         }
 
-        if self.showed_serials == true {
+        if self.show_state == ShowState::ShowAllSerialPorts {
             let list = List::new(vec_serial)
                 .style(Style::default().fg(Color::Cyan))
                 .block(
@@ -314,8 +258,8 @@ impl ComponentRender<()> for SetupPage {
 
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_serial);
         }
-
-        if self.showed_boards == true {
+        
+        if self.show_state == ShowState::ShowBoardsOnly {
             let boards_found = vec_boards.len();
 
             let list = List::new(vec_boards)
@@ -335,117 +279,104 @@ impl ComponentRender<()> for SetupPage {
 
             frame.render_stateful_widget(list, serial_position_h, &mut self.scrollbar_state_boards);
         }
-
-        if self.showed_boards == true {
+        
+        if self.show_state == ShowState::ShowBoardsOnly {
             match self.probeinfo_sender.send(board_ports) {
-                Ok(_) => {}
+                Ok(data) => data,
                 Err(error) => println!("{}", error),
             };
-        } else if self.showed_serials == true {
+        } else if self.show_state == ShowState::ShowAllSerialPorts {
             match self.probeinfo_sender.send(serial_ports) {
-                Ok(_) => {}
+                Ok(data) => data,
                 Err(error) => println!("{}", error),
             };
         }
 
-        let [_, help_text_v, _] = *Layout::default()
+        let temp_help_text_v = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Percentage(65),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, help_text_h, _] = *Layout::default()
+            let [_, help_text_v, _] = temp_help_text_v.areas(frame.size());
+
+        let temp_help_text_h = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(35),
-            ])
-            .split(help_text_v)
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, panic_v, _] = *Layout::default()
+            let [_, help_text_h, _] = temp_help_text_h.areas(help_text_v);
+
+        let temp_panic_v = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Percentage(75),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
+            ]);
+            
+            let [_, panic_v, _] = temp_panic_v.areas(frame.size());
 
-        let [_, panic_h, _] = *Layout::default()
+        let temp_panic_h = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(35),
-            ])
-            .split(panic_v)
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, show_text_v, _] = *Layout::default()
+            let [_, panic_h, _] = temp_panic_h.areas(panic_v);
+
+
+
+        let temp_show_text_v = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Percentage(69),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, show_text_h, _] = *Layout::default()
+
+        let [_, show_text_v, _] = temp_show_text_v.areas(frame.size());
+
+        let temp_show_text_h = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(35),
-            ])
-            .split(show_text_v)
-        else {
-            panic!("adfikjge")
-        };
+            ]);
+
+        let [_, show_text_h, _] = temp_show_text_h.areas(show_text_v);
 
         let show_text = Paragraph::new(Text::from("Press A to switch display mode."));
         frame.render_widget(show_text, show_text_h);
 
-        let [_, enter_text_v, _] = *Layout::default()
+        let temp_enter_text_v = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
                 Constraint::Percentage(72),
                 Constraint::Min(2),
                 Constraint::Percentage(10),
-            ])
-            .split(frame.size())
-        else {
-            panic!("adfikjge")
-        };
+            ]);
 
-        let [_, enter_text_h, _] = *Layout::default()
+            let [_, enter_text_v, _] = temp_enter_text_v.areas(frame.size());
+
+        let temp_enter_text_h = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
                 Constraint::Percentage(18),
                 Constraint::Min(2),
                 Constraint::Percentage(35),
-            ])
-            .split(enter_text_v)
-        else {
-            panic!("adfikjge")
-        };
+            ]);
+
+            let [_, enter_text_h, _] = temp_enter_text_h.areas(enter_text_v);
 
         let help_text = Paragraph::new(Text::from("Press Enter to select highlighted port."));
         frame.render_widget(help_text, enter_text_h);

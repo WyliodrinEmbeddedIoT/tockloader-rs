@@ -24,7 +24,7 @@ use ratatui::{
     text::{Line, Span, Text},
     widgets::{Block, Borders, Paragraph},
 };
-use std::{collections::HashMap, fs::OpenOptions, io::Write};
+use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone, PartialEq)]

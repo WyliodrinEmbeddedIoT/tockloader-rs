@@ -5,7 +5,6 @@
 use circular_queue::CircularQueue;
 use std::{
     collections::HashMap,
-    fs::OpenOptions,
     sync::{Arc, Mutex},
 };
 use tui_term::vt100::Parser;

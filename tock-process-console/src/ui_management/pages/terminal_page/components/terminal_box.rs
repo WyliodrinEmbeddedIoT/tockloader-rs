@@ -4,8 +4,6 @@
 
 use std::{
     collections::HashMap,
-    fs::OpenOptions,
-    io::Write,
     sync::{Arc, Mutex},
 };
 

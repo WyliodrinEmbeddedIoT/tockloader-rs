@@ -4,7 +4,6 @@
 
 use anyhow::Error;
 use bytes::Bytes;
-use probe_rs::config;
 use tokio::{
     io::{split, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
     sync::mpsc::{self, UnboundedReceiver, UnboundedSender},

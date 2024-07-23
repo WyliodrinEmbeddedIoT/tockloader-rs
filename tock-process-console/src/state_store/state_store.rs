@@ -8,7 +8,6 @@ use crate::{
     termination::{Interrupted, Terminator},
 };
 use bytes::Bytes;
-use std::{fs::OpenOptions, io::Write};
 use tokio::sync::{
     broadcast,
     mpsc::{self, UnboundedReceiver, UnboundedSender},
