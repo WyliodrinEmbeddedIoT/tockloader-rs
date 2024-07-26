@@ -237,7 +237,7 @@ impl SectionActivation for AppsList {
         let idx = self
             .active_app
             .as_ref()
-            .and_then(|app_name| self.get_room_index(&app_name))
+            .and_then(|app_name| self.get_room_index(app_name))
             .unwrap_or(0);
 
         *self.list_state.offset_mut() = 0;

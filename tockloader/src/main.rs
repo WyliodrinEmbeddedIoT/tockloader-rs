@@ -8,7 +8,6 @@ mod interfaces;
 
 use cli::make_cli;
 use errors::TockloaderError;
-use tock_process_console;
 
 #[tokio::main]
 async fn main() -> Result<(), TockloaderError> {
@@ -29,7 +28,7 @@ async fn run() -> Result<(), TockloaderError> {
 
     match matches.subcommand() {
         Some(("listen", _sub_matches)) => {
-            let _ = match tock_process_console::run().await {
+            match tock_process_console::run().await {
                 Ok(()) => {}
                 Err(_) => {
                     print!("cli bricked!")

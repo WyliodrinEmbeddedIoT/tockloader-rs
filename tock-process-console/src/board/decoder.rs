@@ -4,6 +4,7 @@
 
 use tokio::sync::mpsc::UnboundedSender;
 
+#[derive(Default)]
 pub struct BoardMessage {
     pub pid: u8,
     pub is_app: bool,
@@ -15,15 +16,6 @@ pub struct Decoder {
     decoded_sender: UnboundedSender<BoardMessage>,
 }
 
-impl Default for BoardMessage {
-    fn default() -> Self {
-        Self {
-            pid: 0,
-            is_app: false,
-            payload: Vec::new(),
-        }
-    }
-}
 
 impl Decoder {
     pub fn new(decoded_sender: UnboundedSender<BoardMessage>) -> Self {
@@ -53,7 +45,7 @@ impl Decoder {
 
         let _ = self.decoded_sender.send(BoardMessage {
             pid,
-            is_app: if is_app == 0 { false } else { true },
+            is_app: is_app != 0,
             payload: self.buffer.clone(),
         });
     }

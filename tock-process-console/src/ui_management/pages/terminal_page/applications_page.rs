@@ -28,7 +28,9 @@ use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone, PartialEq)]
+#[derive(Default)]
 pub enum Section {
+    #[default]
     AppsList,
     Terminal,
 }
@@ -56,11 +58,6 @@ impl TryFrom<usize> for Section {
     }
 }
 
-impl Default for Section {
-    fn default() -> Self {
-        Section::AppsList
-    }
-}
 
 #[derive(Clone, Debug)]
 struct Properties {
@@ -288,7 +285,7 @@ impl ComponentRender<apps_list::RenderProperties> for ApplicationsPage {
             .and_then(|active_app| active_app.clone())
             .and_then(|active_app| self.get_app_data(active_app.as_ref()))
         {
-            let mut app_info = vec![Span::from(format!("{}", app_data.name))];
+            let mut app_info = vec![Span::from(app_data.name.to_string())];
 
             if app_data.is_app {
                 app_info.append(&mut vec![
