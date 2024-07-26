@@ -71,8 +71,6 @@ fn clean_port_path(port: String) -> String {
     }
 }
 
-
-
 pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
     let available_ports = match tokio_serial::available_ports() {
         Ok(ports) => ports,
@@ -88,7 +86,7 @@ pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
             SerialPortType::BluetoothPort => Some("BluetoothPort".to_string()),
             SerialPortType::Unknown => Some("Unknown".to_string()),
         };
-        
+
         if let SerialPortType::UsbPort(_) = port.port_type {
             let temp_serial = format! {"Port[{port_index}](Name:{:#?}, Type:{}), \n", port.port_name, product.unwrap_or("Unknown".to_string())};
             vec_boards.push(temp_serial.clone().into());
@@ -99,18 +97,15 @@ pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
     (vec_boards, board_ports)
 }
 
-
 pub async fn serial_pick(boards: Vec<String>) {
-    
     for port in boards.iter() {
         print!("{}", port)
     }
 
-
     let mut port = String::new();
     stdin().read_line(&mut port).unwrap();
 
-    port.remove(port.len()-1);
+    port.remove(port.len() - 1);
     let port_number = port.parse::<usize>();
 
     if port_number.is_ok() {
@@ -120,4 +115,3 @@ pub async fn serial_pick(boards: Vec<String>) {
         println!("Invalid port inputed.");
     }
 }
-

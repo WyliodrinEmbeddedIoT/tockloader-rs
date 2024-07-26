@@ -6,9 +6,9 @@ mod cli;
 mod errors;
 mod interfaces;
 
-use interfaces::serial::{serial_data_get, serial_pick};
 use cli::make_cli;
 use errors::TockloaderError;
+use interfaces::serial::{serial_data_get, serial_pick};
 use tock_process_console;
 
 #[tokio::main]
