@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 #[allow(unused)]
-
 use self::{setup_page::SetupPage, terminal_page::main_page::MainPage};
 use super::components::{Component, ComponentRender};
 use crate::state_store::{Action, BoardConnectionStatus, State};

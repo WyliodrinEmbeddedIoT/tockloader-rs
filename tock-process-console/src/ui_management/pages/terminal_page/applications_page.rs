@@ -3,7 +3,6 @@
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
 #[allow(unused)]
-
 use super::{
     components::{
         apps_list::{self, AppsList},
