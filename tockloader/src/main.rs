@@ -46,7 +46,7 @@ async fn run() -> Result<(), TockloaderError> {
         Some(("list", sub_matches)) => {
             list_probes(sub_matches).await?;
         }
-        Some(("install", sub_matches)) => {}
+        Some(("install", _sub_matches)) => {}
         // If only the "--debug" flag is set, then this branch is executed
         // Or, more likely at this stage, a subcommand hasn't been implemented yet.
         _ => {

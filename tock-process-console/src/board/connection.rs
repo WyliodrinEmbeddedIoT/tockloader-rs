@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
+#![warn(clippy::new_ret_no_self)]
 use anyhow::Error;
 use bytes::Bytes;
 use tokio::{
