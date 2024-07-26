@@ -6,15 +6,10 @@ mod cli;
 mod errors;
 mod interfaces;
 
-
-use std::io::{stdin, Read};
-
-use interfaces::serial::{self, serial_data_get, serial_pick};
+use interfaces::serial::{serial_data_get, serial_pick};
 use cli::make_cli;
 use errors::TockloaderError;
 use tock_process_console;
-use tokio_serial::SerialPortType;
-use tokio_util::io::poll_read_buf;
 
 #[tokio::main]
 async fn main() -> Result<(), TockloaderError> {

@@ -114,7 +114,7 @@ pub async fn serial_pick(boards: Vec<String>) {
     let port_number = port.parse::<usize>();
 
     if port_number.is_ok() {
-        //TODO PORT PROCESSING
+        //TODO(NegrilaRares) PORT PROCESSING
         print!("{}", boards[port_number.unwrap()]);
     } else {
         println!("Invalid port inputed.");
