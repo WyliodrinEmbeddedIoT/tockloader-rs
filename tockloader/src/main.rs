@@ -6,9 +6,15 @@ mod cli;
 mod errors;
 mod interfaces;
 
+
+use std::io::{stdin, Read};
+
+use interfaces::serial::{self, serial_data_get, serial_pick};
 use cli::make_cli;
 use errors::TockloaderError;
 use tock_process_console;
+use tokio_serial::SerialPortType;
+use tokio_util::io::poll_read_buf;
 
 #[tokio::main]
 async fn main() -> Result<(), TockloaderError> {
@@ -22,7 +28,6 @@ async fn main() -> Result<(), TockloaderError> {
 
 async fn run() -> Result<(), TockloaderError> {
     let matches = make_cli().get_matches();
-
     if matches.get_flag("debug") {
         println!("Debug mode enabled");
     }
@@ -36,6 +41,16 @@ async fn run() -> Result<(), TockloaderError> {
                 }
             };
         }
+
+        Some(("info", _sub_matches)) => {
+            let mut vec_boards: Vec<String> = vec![];
+            let mut board_ports: Vec<String> = vec![];
+
+            (vec_boards, board_ports) = serial_data_get().await;
+
+            serial_pick(vec_boards).await;
+        }
+
         // If only the "--debug" flag is set, then this branch is executed
         // Or, more likely at this stage, a subcommand hasn't been implemented yet.
         _ => {
@@ -43,6 +58,5 @@ async fn run() -> Result<(), TockloaderError> {
             _ = make_cli().print_help();
         }
     }
-
     Ok(())
 }
