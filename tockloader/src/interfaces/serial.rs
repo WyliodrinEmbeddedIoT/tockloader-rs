@@ -5,8 +5,10 @@
 pub mod board_interface;
 pub mod virtual_terminal;
 
+use std::{error, io::stdin};
+
 use clap::ArgMatches;
-use tokio_serial::SerialStream;
+use tokio_serial::{SerialPortType, SerialStream};
 
 use crate::errors::TockloaderError;
 
@@ -66,5 +68,52 @@ fn clean_port_path(port: String) -> String {
         port.replace("/sys/class/tty/", "/dev/")
     } else {
         port
+    }
+}
+
+pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
+    let available_ports = match tokio_serial::available_ports() {
+        Ok(ports) => ports,
+        Err(error) => panic!("Error while searching for ports: {}", error),
+    };
+
+    let mut vec_boards: Vec<String> = vec![];
+    let mut board_ports: Vec<String> = vec![];
+    for (port_index, port) in available_ports.iter().enumerate() {
+        let product = match &port.port_type {
+            SerialPortType::UsbPort(usb) => usb.product.clone(),
+            SerialPortType::PciPort => Some("PciPort".to_string()),
+            SerialPortType::BluetoothPort => Some("BluetoothPort".to_string()),
+            SerialPortType::Unknown => Some("Unknown".to_string()),
+        };
+
+        if let SerialPortType::UsbPort(_) = port.port_type {
+            let temp_serial = format! {"Port[{port_index}](Name:{:#?}, Type:{}), \n", port.port_name, product.unwrap_or("Unknown".to_string())};
+            vec_boards.push(temp_serial.clone().into());
+            board_ports.push(port.port_name.clone());
+        }
+    }
+
+    (vec_boards, board_ports)
+}
+
+pub async fn serial_pick(boards: Vec<String>, boards_ports: Vec<String>) -> Result<String, String> {
+    for port in boards.iter() {
+        print!("{}", port)
+    }
+
+    let mut port = String::new();
+    stdin().read_line(&mut port).unwrap();
+
+    port.remove(port.len() - 1);
+    let port_number = port.parse::<usize>();
+
+    if port_number.is_ok() {
+        //TODO(NegrilaRares) PORT PROCESSING
+        print!("{}", boards[port_number.clone().unwrap()]);
+        Ok(boards_ports[port_number.unwrap()].clone())
+    } else {
+        println!("Invalid port inputed.");
+        Err("Invalid port inputed.".to_string())
     }
 }
