@@ -97,7 +97,7 @@ pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
     (vec_boards, board_ports)
 }
 
-pub async fn serial_pick(boards: Vec<String>, boards_ports: Vec<String>) -> Result<String, String>{
+pub async fn serial_pick(boards: Vec<String>, boards_ports: Vec<String>) -> Result<String, String> {
     for port in boards.iter() {
         print!("{}", port)
     }
@@ -112,10 +112,8 @@ pub async fn serial_pick(boards: Vec<String>, boards_ports: Vec<String>) -> Resu
         //TODO(NegrilaRares) PORT PROCESSING
         print!("{}", boards[port_number.clone().unwrap()]);
         Ok(boards_ports[port_number.unwrap()].clone())
-
     } else {
         println!("Invalid port inputed.");
         Err("Invalid port inputed.".to_string())
     }
-
 }
