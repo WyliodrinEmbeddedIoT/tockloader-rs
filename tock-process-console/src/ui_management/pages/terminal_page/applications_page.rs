@@ -27,8 +27,7 @@ use ratatui::{
 use std::collections::HashMap;
 use tokio::sync::mpsc::UnboundedSender;
 
-#[derive(Debug, Clone, PartialEq)]
-#[derive(Default)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum Section {
     #[default]
     AppsList,
@@ -57,7 +56,6 @@ impl TryFrom<usize> for Section {
         }
     }
 }
-
 
 #[derive(Clone, Debug)]
 struct Properties {

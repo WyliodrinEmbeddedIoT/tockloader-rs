@@ -105,7 +105,8 @@ impl Component for MainPage {
         for (new_screen_idx, _) in state.active_apps.clone() {
             if !self
                 .screens
-                .iter().any(|app| app.screen_idx == new_screen_idx)
+                .iter()
+                .any(|app| app.screen_idx == new_screen_idx)
             {
                 updated_screens.push(ApplicationsPage::new(
                     state,

@@ -16,7 +16,6 @@ pub struct Decoder {
     decoded_sender: UnboundedSender<BoardMessage>,
 }
 
-
 impl Decoder {
     pub fn new(decoded_sender: UnboundedSender<BoardMessage>) -> Self {
         Decoder {

@@ -13,7 +13,7 @@ use cli::make_cli;
 use errors::TockloaderError;
 
 use inquire::Select;
-use interfaces::{traits::*};
+use interfaces::traits::*;
 use probe_rs::probe::list::Lister;
 use probe_rs::{MemoryInterface, Permissions};
 use tbf_parser::parse::*;
