@@ -43,7 +43,7 @@ async fn run() -> Result<(), TockloaderError> {
 
             (vec_boards, board_ports) = serial_data_get().await;
 
-            serial_pick(vec_boards).await;
+            serial_pick(vec_boards, board_ports).await;
         }
 
         // If only the "--debug" flag is set, then this branch is executed

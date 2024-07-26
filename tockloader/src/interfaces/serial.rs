@@ -5,7 +5,7 @@
 pub mod board_interface;
 pub mod virtual_terminal;
 
-use std::io::stdin;
+use std::{error, io::stdin};
 
 use clap::ArgMatches;
 use tokio_serial::{SerialPortType, SerialStream};
@@ -97,7 +97,7 @@ pub async fn serial_data_get() -> (Vec<String>, Vec<String>) {
     (vec_boards, board_ports)
 }
 
-pub async fn serial_pick(boards: Vec<String>) {
+pub async fn serial_pick(boards: Vec<String>, boards_ports: Vec<String>) -> Result<String, String>{
     for port in boards.iter() {
         print!("{}", port)
     }
@@ -110,8 +110,12 @@ pub async fn serial_pick(boards: Vec<String>) {
 
     if port_number.is_ok() {
         //TODO(NegrilaRares) PORT PROCESSING
-        print!("{}", boards[port_number.unwrap()]);
+        print!("{}", boards[port_number.clone().unwrap()]);
+        Ok(boards_ports[port_number.unwrap()].clone())
+
     } else {
         println!("Invalid port inputed.");
+        Err("Invalid port inputed.".to_string())
     }
+
 }
