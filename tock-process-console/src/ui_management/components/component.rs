@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
+#[allow(dead_code)]
+
 use crate::state_store::{Action, State};
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::Frame;
