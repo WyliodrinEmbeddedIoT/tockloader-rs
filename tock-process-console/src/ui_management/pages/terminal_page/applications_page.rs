@@ -2,18 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-#[allow(unused)]
 use super::{
     components::{
         apps_list::{self, AppsList},
         terminal_box::{RenderProps, TerminalBox},
     },
-    section::{
-        self,
-        usage::{UsageInfo, UsageInfoLine},
-        SectionActivation,
-    },
+    section::SectionActivation,
 };
+
 use crate::{
     state_store::{Action, AppData, State},
     ui_management::components::{Component, ComponentRender},
