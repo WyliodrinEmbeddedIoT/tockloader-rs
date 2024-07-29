@@ -10,7 +10,7 @@ use super::{
     },
     section::{
         self,
-        usage::{HasUsageInfo, UsageInfo, UsageInfoLine},
+        usage::{UsageInfo, UsageInfoLine},
         SectionActivation,
     },
 };
@@ -97,13 +97,6 @@ pub struct ApplicationsPage {
 impl ApplicationsPage {
     fn get_app_data(&self, name: &str) -> Option<&AppData> {
         self.properties.app_data_map.get(name)
-    }
-
-    fn get_component_for_section(&self, section: &Section) -> &dyn Component {
-        match section {
-            Section::AppsList => &self.app_list,
-            Section::Terminal => &self.terminal,
-        }
     }
 
     fn get_component_for_section_mut<'a>(&'a mut self, section: &Section) -> &'a mut dyn Component {
@@ -198,10 +191,6 @@ impl Component for ApplicationsPage {
             terminal: self.terminal.update_with_state(state),
             ..self
         }
-    }
-
-    fn name(&self) -> &str {
-        "Applications Page"
     }
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) {
@@ -339,40 +328,5 @@ impl ComponentRender<apps_list::RenderProperties> for ApplicationsPage {
         //     .wrap(Wrap { trim: true })
         //     .block(Block::default().borders(Borders::ALL).title("Usage"));
         // frame.render_widget(usage, right);
-    }
-}
-
-impl HasUsageInfo for ApplicationsPage {
-    fn usage_info(&self) -> section::usage::UsageInfo {
-        if let Some(section) = self.active_section.as_ref() {
-            let handler: &dyn HasUsageInfo = match section {
-                Section::AppsList => &self.app_list,
-                Section::Terminal => &self.terminal,
-            };
-
-            handler.usage_info()
-        } else {
-            UsageInfo {
-                description: Some("Select a widget".into()),
-                lines: vec![
-                    UsageInfoLine {
-                        keys: vec!["q".into()],
-                        description: "to exit".into(),
-                    },
-                    UsageInfoLine {
-                        keys: vec!["←".into(), "→".into()],
-                        description: "to hover widgets".into(),
-                    },
-                    UsageInfoLine {
-                        keys: vec!["e".into()],
-                        description: format!(
-                            "to activate {}",
-                            self.get_component_for_section(&self.currently_hovered_section)
-                                .name()
-                        ),
-                    },
-                ],
-            }
-        }
     }
 }

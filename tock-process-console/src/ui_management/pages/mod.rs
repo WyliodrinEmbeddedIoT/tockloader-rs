@@ -31,13 +31,6 @@ pub struct AppRouter {
 }
 
 impl AppRouter {
-    fn get_active_page_component(&self) -> &dyn Component {
-        match self.active_page {
-            ActivePage::SetupPage => &self.setup_page,
-            ActivePage::MainPage => &self.main_page,
-        }
-    }
-
     fn get_active_page_component_mut(&mut self) -> &mut dyn Component {
         match self.active_page {
             ActivePage::SetupPage => &mut self.setup_page,
@@ -60,10 +53,6 @@ impl Component for AppRouter {
             setup_page: SetupPage::new(state, None, action_sender.clone()),
             main_page: MainPage::new(state, None, action_sender.clone()),
         }
-    }
-
-    fn name(&self) -> &str {
-        self.get_active_page_component().name()
     }
 
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) {

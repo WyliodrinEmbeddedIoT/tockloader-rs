@@ -26,7 +26,7 @@ pub struct ConnectionHandler {
 }
 
 impl ConnectionHandler {
-    pub async fn new(
+    pub async fn connection_init(
         tty: &str,
     ) -> Result<(UnboundedReceiver<Event>, UnboundedSender<Bytes>), Error> {
         let mut port: SerialStream = tokio_serial::new(tty, 115200).open_native_async()?;

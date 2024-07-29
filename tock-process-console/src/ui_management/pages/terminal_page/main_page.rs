@@ -123,10 +123,6 @@ impl Component for MainPage {
         }
     }
 
-    fn name(&self) -> &str {
-        "Main Page"
-    }
-
     fn handle_key_event(&mut self, key: crossterm::event::KeyEvent) {
         if key.kind != KeyEventKind::Press {
             return;
