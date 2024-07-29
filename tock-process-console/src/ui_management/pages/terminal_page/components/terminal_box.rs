@@ -21,8 +21,7 @@ use tui_term::{vt100::Parser, widget::PseudoTerminal};
 use crate::{
     state_store::{Action, AppData, State},
     ui_management::{
-        components::ComponentRender,
-        pages::terminal_page::section::SectionActivation,
+        components::ComponentRender, pages::terminal_page::section::SectionActivation,
     },
 };
 
