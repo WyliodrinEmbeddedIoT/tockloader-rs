@@ -1,4 +1,5 @@
 pub struct BoardSettings {
+
     // We will likely need this in the future
     #[allow(dead_code)]
     pub board: String,

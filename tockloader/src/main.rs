@@ -7,6 +7,7 @@ mod cli;
 mod errors;
 mod interfaces;
 
+
 use std::fs::File;
 use std::io::Read;
 
@@ -18,6 +19,7 @@ use errors::TockloaderError;
 use inquire::Select;
 use probe_rs::probe::list::Lister;
 use probe_rs::{MemoryInterface, Permissions};
+
 use tar::Archive;
 use tbf_parser::parse::*;
 use tbf_parser::types::*;
@@ -25,6 +27,7 @@ use tock_process_console;
 use tokio::time::{sleep, Duration};
 use tokio_serial::{FlowControl, Parity, SerialPort, SerialStream, StopBits};
 use utf8_decode::Decoder;
+
 
 #[tokio::main]
 async fn main() -> Result<(), TockloaderError> {
@@ -44,7 +47,7 @@ async fn run() -> Result<(), TockloaderError> {
 
     match matches.subcommand() {
         Some(("listen", _sub_matches)) => {
-            let _ = match tock_process_console::run().await {
+            match tock_process_console::run().await {
                 Ok(()) => {}
                 Err(_) => {
                     print!("cli bricked!")
@@ -54,6 +57,7 @@ async fn run() -> Result<(), TockloaderError> {
         Some(("list", sub_matches)) => {
             list_probes(sub_matches).await?;
         }
+
         Some(("install", sub_matches)) => {
             install_apps(sub_matches).await?;
         }
@@ -167,7 +171,6 @@ async fn list_probes(sub_matches: &ArgMatches) -> Result<(), TockloaderError> {
 
     Ok(())
 }
-
 async fn install_apps(sub_matches: &ArgMatches) -> Result<(), TockloaderError> {
     // Enter bootloader mode for microbit
     sleep(Duration::from_millis(500)).await;
@@ -335,3 +338,4 @@ async fn install_apps(sub_matches: &ArgMatches) -> Result<(), TockloaderError> {
 
     Ok(())
 }
+
