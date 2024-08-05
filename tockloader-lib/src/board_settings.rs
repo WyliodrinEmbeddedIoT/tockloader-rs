@@ -1,4 +1,9 @@
+// Licensed under the Apache License, Version 2.0 or the MIT License.
+// SPDX-License-Identifier: Apache-2.0 OR MIT
+// Copyright OXIDOS AUTOMOTIVE 2024.
+
 pub struct BoardSettings {
+    // We will likely need this in the future
     #[allow(dead_code)]
     pub board: String,
     pub chip: String,
