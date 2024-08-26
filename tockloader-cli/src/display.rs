@@ -177,10 +177,10 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
 
         let mut total_footer_size: u32 = 0;
 
-        //  Usage of +4 is a result of the structure of the Tock Binart Format(https://book.tockos.org/doc/tock_binary_format)
+        //  Usage of +4 is a result of the structure of the Tock Binary Format (https://book.tockos.org/doc/tock_binary_format)
         //  Because we need the real size of the footer including the type and length.
         for footer_details in details.tbf_footers.iter() {
-            total_footer_size += footer_details.get_size() + 4;
+            total_footer_size += footer_details.size + 4;
         }
 
         println!(
@@ -193,14 +193,14 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
 
             println!(
                 " \x1b[1;32m        Type:                       {}",
-                footer_details.get_credentials().get_type()
+                footer_details.credentials.get_type()
             );
 
-            //  Usage of -4 is a result of the structure of the Tock Binart Format(https://book.tockos.org/doc/tock_binary_format)
+            //  Usage of -4 is a result of the structure of the Tock Binary Format (https://book.tockos.org/doc/tock_binary_format)
             //  Because we only need the size of the credentials without the type and length bytes.
             println!(
                 " \x1b[1;32m        Length:                     {}",
-                footer_details.get_size() - 4
+                footer_details.size - 4
             );
         }
     }

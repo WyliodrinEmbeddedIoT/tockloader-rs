@@ -18,21 +18,13 @@ pub struct AppAttributes {
 
 #[derive(Debug)]
 pub struct TbfFooter {
-    credentials: TbfFooterV2Credentials,
-    size: u32,
+    pub credentials: TbfFooterV2Credentials,
+    pub size: u32,
 }
 
 impl TbfFooter {
     fn new(credentials: TbfFooterV2Credentials, size: u32) -> TbfFooter {
         TbfFooter { credentials, size }
-    }
-
-    pub fn get_size(&self) -> u32 {
-        self.size
-    }
-
-    pub fn get_credentials(&self) -> TbfFooterV2Credentials {
-        self.credentials
     }
 }
 
