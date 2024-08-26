@@ -176,7 +176,7 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         println!("\n \x1b[1;32m    Footer");
 
         let mut total_footer_size: u32 = 0;
-        
+
         //  Usage of +4 is a result of the structure of the Tock Binart Format(https://book.tockos.org/doc/tock_binary_format)
         //  Because we need the real size of the footer including the type and length.
         for footer_details in details.tbf_footers.iter() {

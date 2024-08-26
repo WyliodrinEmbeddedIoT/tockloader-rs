@@ -754,9 +754,8 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
 }
 
 impl TbfFooterV2Credentials {
-    pub fn get_type(&self) -> &str
-    {
-        match self{
+    pub fn get_type(&self) -> &str {
+        match self {
             TbfFooterV2Credentials::Reserved(_) => "Reserved",
             TbfFooterV2Credentials::Rsa3072Key(_) => "Rsa3072Key",
             TbfFooterV2Credentials::Rsa4096Key(_) => "Rsa4096Key",
