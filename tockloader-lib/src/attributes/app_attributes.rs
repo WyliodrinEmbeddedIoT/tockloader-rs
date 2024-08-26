@@ -13,14 +13,31 @@ use tbf_parser::{
 #[derive(Debug)]
 pub struct AppAttributes {
     pub tbf_header: TbfHeader,
-    pub tbf_footers: Vec<(TbfFooterV2Credentials, u32)>,
+    pub tbf_footers: Vec<TbfFooter>,
+}
+
+#[derive(Debug)]
+pub struct TbfFooter {
+    credentials: TbfFooterV2Credentials,
+    size: u32,
+}
+
+impl TbfFooter {
+    fn new(credentials: TbfFooterV2Credentials, size: u32) -> TbfFooter {
+        TbfFooter { credentials, size }
+    }
+
+    pub fn get_size(&self) -> u32 {
+        self.size
+    }
+
+    pub fn get_credentials(&self) -> TbfFooterV2Credentials {
+        self.credentials
+    }
 }
 
 impl AppAttributes {
-    pub(crate) fn new(
-        header_data: TbfHeader,
-        footers_data: Vec<(TbfFooterV2Credentials, u32)>,
-    ) -> AppAttributes {
+    pub(crate) fn new(header_data: TbfHeader, footers_data: Vec<TbfFooter>) -> AppAttributes {
         AppAttributes {
             tbf_header: header_data,
             tbf_footers: footers_data,
@@ -62,7 +79,7 @@ impl AppAttributes {
 
             let binary_end_offset = header.get_binary_end();
 
-            let mut footers: Vec<(TbfFooterV2Credentials, u32)> = vec![];
+            let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
             let mut footer_offset = binary_end_offset;
             let mut footer_number = 0;
@@ -80,10 +97,10 @@ impl AppAttributes {
                     .read(appaddr + footer_offset as u64, &mut appfooter)
                     .unwrap();
 
-                let footer_info = parse_tbf_footer(&appfooter)
+                let footer_info: (TbfFooterV2Credentials, u32) = parse_tbf_footer(&appfooter)
                     .unwrap_or_else(|e| panic!("Paniced while obtaining footer data: {:?}", e));
 
-                footers.insert(footer_number, footer_info);
+                footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
 
                 footer_number += 1;
                 footer_offset += footer_info.1 + 4;

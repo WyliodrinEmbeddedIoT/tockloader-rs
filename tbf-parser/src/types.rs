@@ -754,8 +754,9 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
 }
 
 impl TbfFooterV2Credentials {
-    pub fn get_type(&self) -> &str {
-        match self {
+    pub fn get_type(&self) -> &str
+    {
+        match self{
             TbfFooterV2Credentials::Reserved(_) => "Reserved",
             TbfFooterV2Credentials::Rsa3072Key(_) => "Rsa3072Key",
             TbfFooterV2Credentials::Rsa4096Key(_) => "Rsa4096Key",
@@ -765,15 +766,6 @@ impl TbfFooterV2Credentials {
         }
     }
 }
-
-// pub enum TbfFooterV2Credentials {
-//     Reserved(u32),
-//     Rsa3072Key(TbfFooterV2RSA<384>),
-//     Rsa4096Key(TbfFooterV2RSA<512>),
-//     SHA256(TbfFooterV2SHA<32>),
-//     SHA384(TbfFooterV2SHA<48>),
-//     SHA512(TbfFooterV2SHA<64>),
-// }
 
 /// The command permissions specified by the TBF header.
 ///
