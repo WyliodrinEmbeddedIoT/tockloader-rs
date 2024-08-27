@@ -39,7 +39,32 @@ impl SystemAttributes {
         }
     }
 
-    // TODO: explain what is happening here
+    // This function is used to read relevent data regarding the kernel and the board
+    // Firstly we read the bytes between 0x600-0x9FF (1024 bytes) in chunks of 64 bytes each,
+    // meaning that we have up to 16 key-value pairs of attributes 
+    // that describe the board and the software running on it.
+    // More specifically the data we extract is: 
+    // - board (the name of the board)
+    // - arch (the architecture of the hardware)
+    // - appaddr (the address where the applications are located on the board)
+    // - boothash // TO BE CONFIRMED
+    // For more information [The Tock Book](https://book.tockos.org/doc/memory_layout)
+    // provides the detailed memory layout of the system.
+    //
+    // From the address 0x40E, found within the range 0x400-0x5FF which contains the flags of the bootloader,
+    // we get the: 
+    // - bootloader_version (encoded with the utf-8 standard)
+    // 
+    // Afterwards we take the last 100 bits of the kernel,
+    // we achive that by subtracting 100 from the address that represents the start of the applications section(0x40000)
+    // and from those we extract the:
+    // - sentinel (4 bytes that spell "TOCK") 
+    // - kernel_version (the version of the kernel)
+    // - app_memory_start (The address in RAM the kernel will use to start allocation memory for apps)
+    // - app_memory_len (The number of bytes in the region of memory for apps)
+    // - kernel_binary_start (The address in flash the kernel binary starts at)
+    // - kernel_binary_len (The number of bytes in the kernel binary)
+    // Further explaination can be found here [The Tock Book](https://book.tockos.org/doc/kernel_attributes.html?highlight=attributes#header-format)
     pub(crate) fn read_system_attributes(board_core: &mut Core) -> Self {
         let mut result = SystemAttributes::new();
         let address = 0x600;
@@ -126,7 +151,7 @@ impl SystemAttributes {
         result.app_mem_len = Some(app_memory_len);
         result.kernel_bin_start = Some(kernel_binary_start);
         result.kernel_bin_len = Some(kernel_binary_len);
-
+        
         result
     }
 }
