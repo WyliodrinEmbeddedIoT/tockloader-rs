@@ -10,12 +10,14 @@ use tbf_parser::{
     types::{TbfFooterV2Credentials, TbfHeader},
 };
 
+// Structure used to package an app's header and footer data.
 #[derive(Debug)]
 pub struct AppAttributes {
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
 }
 
+// Structure used to package a footers credential data and the size of the footer.
 #[derive(Debug)]
 pub struct TbfFooter {
     pub credentials: TbfFooterV2Credentials,
@@ -37,6 +39,16 @@ impl AppAttributes {
     }
 
     // TODO: Document this function
+    // Function used to retrive header and footer data
+    // from all the applications flashed on the board.
+    // Starting from the 0x40000 a
+    //
+    //
+    //
+    //
+    //
+    //
+    //
     pub(crate) fn read_apps_data(board_core: &mut Core, addr: u64) -> Vec<AppAttributes> {
         let mut appaddr: u64 = addr;
         let mut apps_counter = 0;

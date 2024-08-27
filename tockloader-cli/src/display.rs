@@ -184,7 +184,7 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         }
 
         println!(
-            " \x1b[1;32m            footer_size:            {}",
+            " \x1b[1;32m        footer_size:                {}",
             total_footer_size
         );
 
