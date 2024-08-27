@@ -38,17 +38,31 @@ impl AppAttributes {
         }
     }
 
-    // TODO: Document this function
     // Function used to retrive header and footer data
     // from all the applications flashed on the board.
-    // Starting from the 0x40000 a
-    //
-    //
-    //
-    //
-    //
-    //
-    //
+    // Starting from the 0x40000 address,
+    // we read the first 8 bytes to determine,
+    // using the parse_tbf_header_lengths function, the following:
+    // - tbf-version
+    // - header_size
+    // - total_size
+    // Afterward, with the newfound header_size, 
+    // we read the the rest of the header information
+    // using the parse_tbf_header function.
+    // Then, by saving the end of the binary of the app, 
+    // which is also the start of the footer of the app, 
+    // we calculate the total size of the footer
+    // and using calculated total footer size, 
+    // the initial offset of the binary end and
+    // the offset from the previous footer, which should be 
+    // the inital binary offset + the previous footer's size (footer_info.1) 
+    // + 4 bytes that contained information regarding the type of the footer and it's length,
+    // we can decuce the exact size of the footer that we need to read from the 
+    // memory address found by adding the application address and the offset from the previous footer.
+    // After that we package it under the TbfFooter structure.
+    // And add all the gathered data into a AppAttributes structure
+    // that then is placed into the vector of application information called apps_details.
+
     pub(crate) fn read_apps_data(board_core: &mut Core, addr: u64) -> Vec<AppAttributes> {
         let mut appaddr: u64 = addr;
         let mut apps_counter = 0;
