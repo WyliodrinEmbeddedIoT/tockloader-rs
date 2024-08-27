@@ -4,6 +4,9 @@
 
 use super::{app_attributes::AppAttributes, system_attributes::SystemAttributes};
 
+// Struncture used for packaging
+// all retreaved data from the board
+// that tockloader-cli might want to access.
 #[derive(Debug)]
 pub struct GeneralAttributes {
     pub system: SystemAttributes,
