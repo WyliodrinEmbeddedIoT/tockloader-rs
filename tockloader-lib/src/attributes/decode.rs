@@ -18,8 +18,15 @@ impl DecodedAttribute {
     }
 }
 
-// TODO: explain what is happening here
-
+// Function used to decode 64 byte chunks from the attributes region at the 0x600-0x9FF range
+// The first 8 bytes represent the key of the attribute,
+// while the rest represent the stored data.
+// The key is utf-8 decoded and converted into a String.
+// Then we check the vlen value at the 9th byte,
+// representing the bytewise length of the value from the attribute.
+// Given that the chunks contain 64 bytes the value can not be larger than 55.
+// We return None if the data is larger than the possible length or if the data does not exist for that particular attribute.
+// Afterwards we decode the bytes of the value and turn them into a String.
 pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     let raw_key = &step[0..8];
 
@@ -49,10 +56,9 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     Some(DecodedAttribute::new(key, value))
 }
 
-// Used to decode, using the utf-8 standard, the 8 bytes
-// that represent the key of the key-value pairs
-// from the Attributes section of the Memory Layout
-// Information taken from: [The Tock Book](https://book.tockos.org/doc/memory_layout.html?search=0x40000)
+// Function used to decode utf-8 encoded bytes and return them as Strings
+// Specifically used in the read_system_attributes fn from the system_attributes.rs
+// to decode the bytes of the sentinel kernel attribute.
 pub(crate) fn bytes_to_string(raw: &[u8]) -> String {
     let decoder = utf8_decode::Decoder::new(raw.iter().cloned());
 
