@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
+
+// Structure used to hold the data of the attributes region at the 0x600-0x9FF range
 #[derive(Debug)]
 pub struct DecodedAttribute {
     pub key: String,
@@ -18,6 +20,7 @@ impl DecodedAttribute {
 }
 
 // TODO: explain what is happening here
+
 pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     let raw_key = &step[0..8];
 
@@ -47,7 +50,10 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     Some(DecodedAttribute::new(key, value))
 }
 
-// TODO: explain what is happening here
+// Used to decode, using the utf-8 standard, the 8 bytes 
+// that represent the key of the key-value pairs 
+// from the Attributes section of the Memory Layout 
+// Information taken from: [The Tock Book](https://book.tockos.org/doc/memory_layout.html?search=0x40000)
 pub(crate) fn bytes_to_string(raw: &[u8]) -> String {
     let decoder = utf8_decode::Decoder::new(raw.iter().cloned());
 
