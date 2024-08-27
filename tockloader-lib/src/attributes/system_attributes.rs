@@ -41,9 +41,9 @@ impl SystemAttributes {
 
     // This function is used to read relevent data regarding the kernel and the board
     // Firstly we read the bytes between 0x600-0x9FF (1024 bytes) in chunks of 64 bytes each,
-    // meaning that we have up to 16 key-value pairs of attributes 
+    // meaning that we have up to 16 key-value pairs of attributes
     // that describe the board and the software running on it.
-    // More specifically the data we extract is: 
+    // More specifically the data we extract is:
     // - board (the name of the board)
     // - arch (the architecture of the hardware)
     // - appaddr (the address where the applications are located on the board)
@@ -52,13 +52,13 @@ impl SystemAttributes {
     // provides the detailed memory layout of the system.
     //
     // From the address 0x40E, found within the range 0x400-0x5FF which contains the flags of the bootloader,
-    // we get the: 
+    // we get the:
     // - bootloader_version (encoded with the utf-8 standard)
-    // 
+    //
     // Afterwards we take the last 100 bits of the kernel,
     // we achive that by subtracting 100 from the address that represents the start of the applications section(0x40000)
     // and from those we extract the:
-    // - sentinel (4 bytes that spell "TOCK") 
+    // - sentinel (4 bytes that spell "TOCK")
     // - kernel_version (the version of the kernel)
     // - app_memory_start (The address in RAM the kernel will use to start allocation memory for apps)
     // - app_memory_len (The number of bytes in the region of memory for apps)
@@ -151,7 +151,7 @@ impl SystemAttributes {
         result.app_mem_len = Some(app_memory_len);
         result.kernel_bin_start = Some(kernel_binary_start);
         result.kernel_bin_len = Some(kernel_binary_len);
-        
+
         result
     }
 }
