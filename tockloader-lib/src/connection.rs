@@ -157,6 +157,7 @@ impl Connection for SerialConnection {
 /// This is an utility enum to make your life easier when you want to abstract
 /// away the underlying connection type. Use with caution, not all connection
 /// types must implement every command.
+#[allow(clippy::large_enum_variant)]
 pub enum TockloaderConnection {
     ProbeRS(ProbeRSConnection),
     Serial(SerialConnection),
