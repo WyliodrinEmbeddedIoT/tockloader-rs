@@ -1,9 +1,12 @@
+use async_trait::async_trait;
+
 use crate::board_settings::BoardSettings;
 use crate::connection::SerialConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
 use crate::CommandInstall;
 
+#[async_trait]
 impl CommandInstall for SerialConnection {
     async fn install_app(
         &mut self,
