@@ -8,11 +8,6 @@ use tokio_serial::{FlowControl, Parity, SerialPort, SerialStream, StopBits};
 
 use crate::errors::TockloaderError;
 
-// pub enum ConnectionInfo {
-//     SerialInfo(String, SerialTargetInfo),
-//     ProbeInfo(DebugProbeInfo, ProbeTargetInfo),
-// }
-
 pub struct ProbeTargetInfo {
     pub chip: String,
     pub core: usize,
@@ -156,5 +151,48 @@ impl Connection for SerialConnection {
 
     fn is_open(&self) -> bool {
         self.stream.is_some()
+    }
+}
+
+/// This is an utility enum to make your life easier when you want to abstract
+/// away the underlying connection type. Use with caution, not all connection
+/// types must implement every command.
+pub enum TockloaderConnection {
+    ProbeRS(ProbeRSConnection),
+    Serial(SerialConnection),
+}
+
+impl From<ProbeRSConnection> for TockloaderConnection {
+    fn from(conn: ProbeRSConnection) -> Self {
+        TockloaderConnection::ProbeRS(conn)
+    }
+}
+
+impl From<SerialConnection> for TockloaderConnection {
+    fn from(conn: SerialConnection) -> Self {
+        TockloaderConnection::Serial(conn)
+    }
+}
+#[async_trait]
+impl Connection for TockloaderConnection {
+    async fn open(&mut self) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.open().await,
+            TockloaderConnection::Serial(conn) => conn.open().await,
+        }
+    }
+
+    async fn close(&mut self) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.close().await,
+            TockloaderConnection::Serial(conn) => conn.close().await,
+        }
+    }
+
+    fn is_open(&self) -> bool {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.is_open(),
+            TockloaderConnection::Serial(conn) => conn.is_open(),
+        }
     }
 }
