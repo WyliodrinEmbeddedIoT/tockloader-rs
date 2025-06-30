@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use async_trait::async_trait;
 use probe_rs::probe::DebugProbeInfo;
 use probe_rs::{Permissions, Session};
 use tokio::io::AsyncWriteExt;
@@ -47,6 +48,7 @@ impl Default for SerialTargetInfo {
     }
 }
 
+#[async_trait]
 pub trait Connection {
     async fn open(&mut self) -> Result<(), TockloaderError>;
     /// Closes the connection, if it is open. If it is not open, it does
@@ -75,6 +77,7 @@ impl ProbeRSConnection {
     }
 }
 
+#[async_trait]
 impl Connection for ProbeRSConnection {
     async fn open(&mut self) -> Result<(), TockloaderError> {
         let probe = self
@@ -121,6 +124,7 @@ impl SerialConnection {
     }
 }
 
+#[async_trait]
 impl Connection for SerialConnection {
     async fn open(&mut self) -> Result<(), TockloaderError> {
         let builder = tokio_serial::new(&self.port, self.target_info.baud_rate)
@@ -145,7 +149,7 @@ impl Connection for SerialConnection {
 
     async fn close(&mut self) -> Result<(), TockloaderError> {
         if let Some(mut stream) = self.stream.take() {
-            stream.shutdown().await;
+            stream.shutdown().await?;
         }
         Ok(())
     }
