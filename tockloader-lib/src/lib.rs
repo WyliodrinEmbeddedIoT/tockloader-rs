@@ -5,7 +5,6 @@
 pub mod attributes;
 pub mod board_settings;
 pub(crate) mod bootloader_serial;
-pub mod command_impl;
 pub mod connection;
 mod errors;
 pub mod known_boards;
@@ -48,28 +47,6 @@ pub fn list_serial_ports() -> Result<Vec<SerialPortInfo>, TockloaderError> {
 // functions to the proposed 'Connection' trait.
 
 // TODO(george-cosma): General housekeeping in these functions.
-
-pub trait CommandList {
-    async fn list(
-        &mut self,
-        settings: &BoardSettings,
-    ) -> Result<Vec<AppAttributes>, TockloaderError>;
-}
-
-pub trait CommandInfo {
-    async fn info(
-        &mut self,
-        settings: &BoardSettings,
-    ) -> Result<GeneralAttributes, TockloaderError>;
-}
-
-pub trait CommandInstall {
-    async fn install_app(
-        &mut self,
-        settings: &BoardSettings,
-        tab_file: Tab,
-    ) -> Result<(), TockloaderError>;
-}
 
 pub async fn list(
     connection: &mut Connection,
