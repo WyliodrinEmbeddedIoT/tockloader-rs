@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
-
 use crate::attributes::app_attributes::AppAttributes;
 use crate::attributes::general_attributes::GeneralAttributes;
 use crate::attributes::system_attributes::SystemAttributes;
@@ -11,7 +9,6 @@ use crate::connection::{Connection, SerialConnection};
 use crate::errors::TockloaderError;
 use crate::CommandInfo;
 
-#[async_trait]
 impl CommandInfo for SerialConnection {
     async fn info(
         &mut self,

@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use probe_rs::flashing::DownloadOptions;
 use probe_rs::MemoryInterface;
 use tbf_parser::parse::parse_tbf_header_lengths;
@@ -9,7 +8,6 @@ use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
 use crate::CommandInstall;
 
-#[async_trait]
 impl CommandInstall for ProbeRSConnection {
     async fn install_app(
         &mut self,

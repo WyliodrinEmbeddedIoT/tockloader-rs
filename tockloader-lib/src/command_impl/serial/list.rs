@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use async_trait::async_trait;
-
 use crate::attributes::app_attributes::AppAttributes;
 use crate::board_settings::BoardSettings;
 use crate::bootloader_serial::{ping_bootloader_and_wait_for_response, Response};
@@ -9,7 +7,6 @@ use crate::connection::{Connection, SerialConnection};
 use crate::errors::TockloaderError;
 use crate::CommandList;
 
-#[async_trait]
 impl CommandList for SerialConnection {
     async fn list(
         &mut self,

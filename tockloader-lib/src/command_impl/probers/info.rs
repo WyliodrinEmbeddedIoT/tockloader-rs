@@ -1,5 +1,3 @@
-use async_trait::async_trait;
-
 use crate::attributes::app_attributes::AppAttributes;
 use crate::attributes::general_attributes::GeneralAttributes;
 use crate::attributes::system_attributes::SystemAttributes;
@@ -8,7 +6,6 @@ use crate::connection::{Connection, ProbeRSConnection};
 use crate::errors::TockloaderError;
 use crate::CommandInfo;
 
-#[async_trait]
 impl CommandInfo for ProbeRSConnection {
     async fn info(
         &mut self,
