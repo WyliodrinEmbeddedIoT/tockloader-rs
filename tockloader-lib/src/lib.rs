@@ -36,6 +36,18 @@ pub fn list_serial_ports() -> Result<Vec<SerialPortInfo>, TockloaderError> {
     tokio_serial::available_ports().map_err(TockloaderError::SerialInitializationError)
 }
 
+// TODO(george-cosma): These functions can all be turned into traits (Listable,
+// Installable, etc.) and be implemented on the Connection enum. Or, if we also
+// split Connection into trait + structs for each type of connection type, we
+// can implement these traits on the individual connections types, and not have
+// this mega-massive file.
+
+// TODO(george-cosma): Examine if we need to split these functions into smaller
+// parts (reading - processing - writing) for mocking. Could also involve adding
+// functions to the proposed 'Connection' trait.
+
+// TODO(george-cosma): General housekeeping in these functions.
+
 pub async fn list(
     connection: &mut Connection,
     settings: &BoardSettings,
@@ -107,12 +119,12 @@ pub async fn install_app(
                 .core(info.core)
                 .map_err(|e| TockloaderError::CoreAccessError(info.core, e))?;
 
-            // TODO: extract these informations without bootloader
-            // TODO: extract board name and kernelr version to verify app compatability
+            // TODO(george-cosma): extract these informations without bootloader
+            // TODO(george-cosma): extract board name and kernel version to verify app compatability
 
             let mut address = settings.start_address;
 
-            // TODO: double-check/rework this
+            // TODO(george-cosma): double-check/rework this
 
             // Read a block of 200 8-bit words// Loop to check if there are another apps installed
             loop {
@@ -141,7 +153,7 @@ pub async fn install_app(
                     "No architecture found.".to_owned(),
                 ))?;
 
-            let mut binary = tab_file.extract_binary(&arch.clone())?;
+            let mut binary = tab_file.extract_binary(&arch)?;
             let size = binary.len() as u64;
 
             // Make sure the app is aligned to a multiple of its size
@@ -155,12 +167,18 @@ pub async fn install_app(
                 (address, 0)
             };
 
-            // No more need of core
+            // TODO(george-cosma): This point MIGHT mark a good point to split
+            // this function (for probe-rs).
+
+            // At this point we no longer need to hold the probe-rs connection
+            // to the core, as the flashing is done without it.
             drop(core);
 
             // Make sure the binary is a multiple of the page size by padding 0xFFs
-            // TODO(Micu Ana): check if the page-size differs
-            // TODO: also use page_size given or known. This works for now
+
+            // TODO(george-cosma): check if the page-size differs + support
+            // multiple types of page sizes. Possibly make page size a board
+            // setting.
             let page_size = 512;
             let needs_padding = binary.len() % page_size != 0;
 
@@ -186,14 +204,16 @@ pub async fn install_app(
                 }
             }
 
-            // If there are no pages valid, all pages would have been removed, so we write them all
+            // If there are no pages valid, all pages would have been removed,
+            // so we write them all
             if valid_pages.is_empty() {
                 for i in 0..(size as usize / page_size) {
                     valid_pages.push(i.try_into().unwrap());
                 }
             }
 
-            // Include a blank page (if exists) after the end of a valid page. There might be a usable 0 on the next page
+            // Include a blank page (if exists) after the end of a valid page.
+            // There might be a usable 0 on the next page
             let mut ending_pages: Vec<u8> = Vec::new();
             for &i in &valid_pages {
                 let mut iter = valid_pages.iter();
@@ -208,8 +228,8 @@ pub async fn install_app(
 
             for i in valid_pages {
                 println!("Writing page number {}", i);
-                // Create the packet that we send to the bootloader
-                // First four bytes are the address of the page
+                // Create the packet that we send to the bootloader. First four
+                // bytes are the address of the page
                 let mut pkt = Vec::new();
 
                 // Then the bytes that go into the page

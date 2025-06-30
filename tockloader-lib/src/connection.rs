@@ -46,6 +46,7 @@ impl Default for SerialTargetInfo {
     }
 }
 
+// TODO(george-cosma): trait? and 2 struct ProbeConnection and SerialConection?
 #[allow(clippy::large_enum_variant)]
 pub enum Connection {
     ProbeRS {
