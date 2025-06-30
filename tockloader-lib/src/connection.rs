@@ -2,14 +2,15 @@ use std::time::Duration;
 
 use probe_rs::probe::DebugProbeInfo;
 use probe_rs::{Permissions, Session};
+use tokio::io::AsyncWriteExt;
 use tokio_serial::{FlowControl, Parity, SerialPort, SerialStream, StopBits};
 
 use crate::errors::TockloaderError;
 
-pub enum ConnectionInfo {
-    SerialInfo(String, SerialTargetInfo),
-    ProbeInfo(DebugProbeInfo, ProbeTargetInfo),
-}
+// pub enum ConnectionInfo {
+//     SerialInfo(String, SerialTargetInfo),
+//     ProbeInfo(DebugProbeInfo, ProbeTargetInfo),
+// }
 
 pub struct ProbeTargetInfo {
     pub chip: String,
@@ -46,65 +47,110 @@ impl Default for SerialTargetInfo {
     }
 }
 
-// TODO(george-cosma): trait? and 2 struct ProbeConnection and SerialConection?
-#[allow(clippy::large_enum_variant)]
-pub enum Connection {
-    ProbeRS {
-        session: Session,
-        info: ProbeTargetInfo,
-    },
-    Serial {
-        stream: SerialStream,
-        info: SerialTargetInfo,
-    },
+pub trait Connection {
+    async fn open(&mut self) -> Result<(), TockloaderError>;
+    /// Closes the connection, if it is open. If it is not open, it does
+    /// nothing. On error the state of the connection is unknown and calling
+    /// `open` or any other method is undefined behavior.
+    async fn close(&mut self) -> Result<(), TockloaderError>;
+    fn is_open(&self) -> bool;
 }
 
-impl Connection {
-    pub fn open(info: ConnectionInfo) -> Result<Connection, TockloaderError> {
-        match info {
-            ConnectionInfo::SerialInfo(path, target_info) => {
-                let builder = tokio_serial::new(path, target_info.baud_rate);
-                match SerialStream::open(&builder) {
-                    Ok(mut stream) => {
-                        stream
-                            .set_parity(target_info.parity)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        stream
-                            .set_stop_bits(target_info.stop_bits)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        stream
-                            .set_flow_control(target_info.flow_control)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        stream
-                            .set_timeout(target_info.timeout)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        stream
-                            .write_request_to_send(target_info.request_to_send)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        stream
-                            .write_data_terminal_ready(target_info.data_terminal_ready)
-                            .map_err(TockloaderError::SerialInitializationError)?;
-                        Ok(Connection::Serial {
-                            stream,
-                            info: target_info,
-                        })
-                    }
-                    Err(e) => Err(TockloaderError::SerialInitializationError(e)),
-                }
-            }
-            ConnectionInfo::ProbeInfo(probe_info, target_info) => {
-                let probe = probe_info
-                    .open()
-                    .map_err(TockloaderError::ProbeRsInitializationError)?;
+pub struct ProbeRSConnection {
+    session: Option<Session>,
+    /// Used both to open new conections but also used during the session to
+    /// provide information about the target
+    target_info: ProbeTargetInfo,
+    /// Only used for opening a new connection
+    debug_probe: DebugProbeInfo,
+}
 
-                match probe.attach(&target_info.chip, Permissions::default()) {
-                    Ok(session) => Ok(Connection::ProbeRS {
-                        session,
-                        info: target_info,
-                    }),
-                    Err(e) => Err(TockloaderError::ProbeRsCommunicationError(e)),
-                }
-            }
+impl ProbeRSConnection {
+    pub fn new(debug_probe: DebugProbeInfo, target_info: ProbeTargetInfo) -> Self {
+        Self {
+            session: None,
+            target_info,
+            debug_probe,
         }
+    }
+}
+
+impl Connection for ProbeRSConnection {
+    async fn open(&mut self) -> Result<(), TockloaderError> {
+        let probe = self
+            .debug_probe
+            .open()
+            .map_err(TockloaderError::ProbeRsInitializationError)?;
+
+        self.session = Some(
+            probe
+                .attach(&self.target_info.chip, Permissions::default())
+                .map_err(TockloaderError::ProbeRsCommunicationError)?,
+        );
+
+        Ok(())
+    }
+
+    async fn close(&mut self) -> Result<(), TockloaderError> {
+        // Session implements Drop, so we don't need to explicitly close it.
+        self.session = None;
+        Ok(())
+    }
+
+    fn is_open(&self) -> bool {
+        self.session.is_some()
+    }
+}
+
+pub struct SerialConnection {
+    stream: Option<SerialStream>,
+    /// Used both to open new connections but also used during the session to
+    /// provide information about the target
+    target_info: SerialTargetInfo,
+    /// Path to the serial port. This is only used for opening a new connection.
+    port: String,
+}
+
+impl SerialConnection {
+    pub fn new(port: String, target_info: SerialTargetInfo) -> Self {
+        Self {
+            stream: None,
+            target_info,
+            port,
+        }
+    }
+}
+
+impl Connection for SerialConnection {
+    async fn open(&mut self) -> Result<(), TockloaderError> {
+        let builder = tokio_serial::new(&self.port, self.target_info.baud_rate)
+            .parity(self.target_info.parity)
+            .stop_bits(self.target_info.stop_bits)
+            .flow_control(self.target_info.flow_control)
+            .timeout(self.target_info.timeout);
+
+        let mut stream =
+            SerialStream::open(&builder).map_err(TockloaderError::SerialInitializationError)?;
+
+        stream
+            .write_request_to_send(self.target_info.request_to_send)
+            .map_err(TockloaderError::SerialInitializationError)?;
+        stream
+            .write_data_terminal_ready(self.target_info.data_terminal_ready)
+            .map_err(TockloaderError::SerialInitializationError)?;
+
+        self.stream = Some(stream);
+        Ok(())
+    }
+
+    async fn close(&mut self) -> Result<(), TockloaderError> {
+        if let Some(mut stream) = self.stream.take() {
+            stream.shutdown().await;
+        }
+        Ok(())
+    }
+
+    fn is_open(&self) -> bool {
+        self.stream.is_some()
     }
 }
