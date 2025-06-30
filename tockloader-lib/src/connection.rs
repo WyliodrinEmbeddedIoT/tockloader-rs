@@ -57,10 +57,10 @@ pub trait Connection {
 }
 
 pub struct ProbeRSConnection {
-    session: Option<Session>,
+    pub(crate) session: Option<Session>,
     /// Used both to open new conections but also used during the session to
     /// provide information about the target
-    target_info: ProbeTargetInfo,
+    pub(crate) target_info: ProbeTargetInfo,
     /// Only used for opening a new connection
     debug_probe: DebugProbeInfo,
 }
@@ -103,10 +103,10 @@ impl Connection for ProbeRSConnection {
 }
 
 pub struct SerialConnection {
-    stream: Option<SerialStream>,
+    pub(crate) stream: Option<SerialStream>,
     /// Used both to open new connections but also used during the session to
     /// provide information about the target
-    target_info: SerialTargetInfo,
+    pub(crate) target_info: SerialTargetInfo,
     /// Path to the serial port. This is only used for opening a new connection.
     port: String,
 }

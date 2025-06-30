@@ -71,32 +71,6 @@ pub trait CommandInstall {
     ) -> Result<(), TockloaderError>;
 }
 
-pub async fn list(
-    connection: &mut Connection,
-    settings: &BoardSettings,
-) -> Result<Vec<AppAttributes>, TockloaderError> {
-    match connection {
-        Connection::ProbeRS { session, info } => {
-            let mut core = session
-                .core(info.core)
-                .map_err(|e| TockloaderError::CoreAccessError(info.core, e))?;
-
-            AppAttributes::read_apps_data_probe(&mut core, settings.start_address)
-        }
-        Connection::Serial { stream, info: _ } => {
-            let response = ping_bootloader_and_wait_for_response(stream).await?;
-
-            if response as u8 != Response::Pong as u8 {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                // TODO: more robust retry system (and configurable)
-                let _ = ping_bootloader_and_wait_for_response(stream).await?;
-            }
-
-            AppAttributes::read_apps_data_serial(stream, settings.start_address).await
-        }
-    }
-}
-
 pub async fn info(
     connection: &mut Connection,
     settings: &BoardSettings,
