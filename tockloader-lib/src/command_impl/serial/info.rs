@@ -18,7 +18,7 @@ impl CommandInfo for SerialConnection {
         settings: &BoardSettings,
     ) -> Result<GeneralAttributes, TockloaderError> {
         if !self.is_open() {
-            todo!("Error here");
+            return Err(TockloaderError::ConnectionNotOpen);
         }
         let stream = self.stream.as_mut().expect("Board must be open");
 
