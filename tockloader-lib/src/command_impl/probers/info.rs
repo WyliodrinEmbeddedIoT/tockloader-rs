@@ -15,7 +15,7 @@ impl CommandInfo for ProbeRSConnection {
         settings: &BoardSettings,
     ) -> Result<GeneralAttributes, TockloaderError> {
         if !self.is_open() {
-            todo!("Error here");
+            return Err(TockloaderError::ConnectionNotOpen);
         }
         let session = self.session.as_mut().expect("Board must be open");
 
