@@ -17,7 +17,7 @@ impl CommandInstall for ProbeRSConnection {
         tab_file: Tab,
     ) -> Result<(), TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            todo!("Error here");
         }
         let session = self.session.as_mut().expect("Board must be open");
 

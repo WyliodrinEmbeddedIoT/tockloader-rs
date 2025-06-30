@@ -12,9 +12,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum TockloaderError {
-    #[error("Failed due to the connection not being open.")]
-    ConnectionNotOpen,
-
     #[error("Error occurred while trying to access core: {0}")]
     CoreAccessError(usize, probe_rs::Error),
 

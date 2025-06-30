@@ -16,7 +16,7 @@ impl CommandList for SerialConnection {
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            todo!("Error here");
         }
         let stream = self.stream.as_mut().expect("Board must be open");
 

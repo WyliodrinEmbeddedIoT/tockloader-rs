@@ -13,7 +13,7 @@ impl CommandList for ProbeRSConnection {
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            todo!("Error here");
         }
         let session = self.session.as_mut().expect("Board must be open");
 
