@@ -71,6 +71,40 @@ pub trait CommandInstall {
     ) -> Result<(), TockloaderError>;
 }
 
+pub async fn info(
+    connection: &mut Connection,
+    settings: &BoardSettings,
+) -> Result<GeneralAttributes, TockloaderError> {
+    match connection {
+        Connection::ProbeRS { session, info } => {
+            let mut core = session
+                .core(info.core)
+                .map_err(|e| TockloaderError::CoreAccessError(info.core, e))?;
+
+            // TODO: extract these informations without bootloader
+            let system_attributes = SystemAttributes::read_system_attributes_probe(&mut core)?;
+            let app_attributes =
+                AppAttributes::read_apps_data_probe(&mut core, settings.start_address)?;
+
+            Ok(GeneralAttributes::new(system_attributes, app_attributes))
+        }
+        Connection::Serial { stream, info: _ } => {
+            let response = ping_bootloader_and_wait_for_response(stream).await?;
+
+            if response as u8 != Response::Pong as u8 {
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                let _ = ping_bootloader_and_wait_for_response(stream).await?;
+            }
+
+            let system_attributes = SystemAttributes::read_system_attributes_serial(stream).await?;
+            let app_attributes =
+                AppAttributes::read_apps_data_serial(stream, settings.start_address).await?;
+
+            Ok(GeneralAttributes::new(system_attributes, app_attributes))
+        }
+    }
+}
+
 pub async fn install_app(
     connection: &mut Connection,
     settings: &BoardSettings,
