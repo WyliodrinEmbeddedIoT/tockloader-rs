@@ -6,9 +6,10 @@ use crate::connection::SerialConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
 use crate::CommandInstall;
-use crate::commands::{issue_command, Command, Response};
-use crate::system_attributes::SystemAttributes;
-use crate::tbf::parse_tbf_header_lengths;
+use crate::bootloader_serial::commands::{issue_command, Command, Response};
+use crate::attributes::system_attributes::SystemAttributes;
+use tbf_parser::parse_tbf_header_lengths;
+use crate::bootloader_serial::ping_bootloader_and_wait_for_response;
 
 
 #[async_trait]
