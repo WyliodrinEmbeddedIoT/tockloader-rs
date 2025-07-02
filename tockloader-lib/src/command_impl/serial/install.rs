@@ -1,14 +1,15 @@
 use async_trait::async_trait;
 use tokio::time::Duration;
+use tokio_serial::SerialStream;
 
 use crate::board_settings::BoardSettings;
 use crate::connection::SerialConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
 use crate::CommandInstall;
-use crate::bootloader_serial::commands::{issue_command, Command, Response};
+use crate::bootloader_serial::{issue_command, Command, Response};
 use crate::attributes::system_attributes::SystemAttributes;
-use tbf_parser::parse_tbf_header_lengths;
+use crate::tbf::parse_tbf_header_lengths;
 use crate::bootloader_serial::ping_bootloader_and_wait_for_response;
 
 
@@ -19,16 +20,15 @@ impl CommandInstall for SerialConnection {
         _settings: &BoardSettings,
         tab_file: Tab,
     ) -> Result<(), TockloaderError> {
-        
-        let response = ping_bootloader_and_wait_for_response(self).await?;
+        let response = ping_bootloader_and_wait_for_response(&mut self.port).await?;
 
         if response as u8 != Response::Pong as u8 {
             tokio::time::sleep(Duration::from_millis(100)).await;
-            let _ = ping_bootloader_and_wait_for_response(self).await?;
+            let _ = ping_bootloader_and_wait_for_response(&mut self.port).await?;
         }
 
         let system_attributes =
-            SystemAttributes::read_system_attributes_serial(self).await?;
+            SystemAttributes::read_system_attributes_serial(&mut self.port).await?;
 
         let board = system_attributes
             .board
@@ -82,7 +82,7 @@ impl CommandInstall for SerialConnection {
             }
 
             let (_, message) = issue_command(
-                self,
+                &mut self.port,
                 Command::ReadRange,
                 pkt,
                 true,
@@ -195,7 +195,7 @@ impl CommandInstall for SerialConnection {
 
                             // Write to bootloader
                             let (_, _) = issue_command(
-                                self,
+                                &mut self.port,
                                 Command::WritePage,
                                 pkt,
                                 true,
@@ -210,7 +210,7 @@ impl CommandInstall for SerialConnection {
                         let pkt = (new_address as u32).to_le_bytes().to_vec();
 
                         let _ = issue_command(
-                            self,
+                            &mut self.port,
                             Command::ErasePage,
                             pkt,
                             true,
