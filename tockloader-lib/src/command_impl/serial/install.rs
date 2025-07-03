@@ -138,7 +138,7 @@ impl CommandInstall for SerialConnection {
 
                         if needs_padding {
                             let remaining = page_size - (binary.len() % page_size);
-                            for _ in 0..remaining {
+                            for _i in 0..remaining {
                                 binary.push(0xFF);
                             }
                         }
