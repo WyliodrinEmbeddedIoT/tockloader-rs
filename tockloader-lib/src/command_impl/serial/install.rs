@@ -40,7 +40,6 @@ impl CommandInstall for SerialConnection {
             .board
             .ok_or("No board name found.".to_owned());
         //TODO: handle the case when board is not set
-        todo!("Handle the case when board is not set in system attributes.");
         let kernel_version = system_attributes
             .kernel_version
             .ok_or("No kernel version found.".to_owned());
@@ -162,7 +161,6 @@ impl CommandInstall for SerialConnection {
 
                         // If there are no pages valid, all pages would have been removed, so we write them all
                         //TODO: needs to be rewritten in a cleaner way
-                        todo!("Rewrite the logic for determining valid pages in a cleaner way.");
                         if valid_pages.is_empty() {
                             for i in 0..(binary_len / page_size) {
                                 valid_pages.push(i as u8);
