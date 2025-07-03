@@ -23,13 +23,9 @@ impl CommandInstall for SerialConnection {
             return Err(TockloaderError::ConnectionNotOpen);
         }
 
-        let stream = if let Some(s) = self.stream.as_mut() {
-            s
-        } else {
-            return Err(TockloaderError::MisconfiguredBoard(
-                "Serial stream is not initialized or connected.".to_string(),
-            ));
-        };
+        let stream = self.stream.as_mut().expect(
+            "Expected serial stream to be initialized. This should not happen if setup is correct.",
+        );
 
         let response = ping_bootloader_and_wait_for_response(stream).await?;
 
@@ -43,6 +39,8 @@ impl CommandInstall for SerialConnection {
         let board = system_attributes
             .board
             .ok_or("No board name found.".to_owned());
+        //TODO: handle the case when board is not set
+        todo!("Handle the case when board is not set in system attributes.");
         let kernel_version = system_attributes
             .kernel_version
             .ok_or("No kernel version found.".to_owned());
@@ -141,7 +139,7 @@ impl CommandInstall for SerialConnection {
 
                         if needs_padding {
                             let remaining = page_size - (binary.len() % page_size);
-                            for _i in 0..remaining {
+                            for _ in 0..remaining {
                                 binary.push(0xFF);
                             }
                         }
@@ -163,6 +161,8 @@ impl CommandInstall for SerialConnection {
                         }
 
                         // If there are no pages valid, all pages would have been removed, so we write them all
+                        //TODO: needs to be rewritten in a cleaner way
+                        todo!("Rewrite the logic for determining valid pages in a cleaner way.");
                         if valid_pages.is_empty() {
                             for i in 0..(binary_len / page_size) {
                                 valid_pages.push(i as u8);
