@@ -160,7 +160,7 @@ impl CommandInstall for SerialConnection {
                         }
 
                         // If there are no pages valid, all pages would have been removed, so we write them all
-                        //TODO: needs to be rewritten in a cleaner way
+                        //TODo: needs to be rewritten in a cleaner way
                         if valid_pages.is_empty() {
                             for i in 0..(binary_len / page_size) {
                                 valid_pages.push(i as u8);
