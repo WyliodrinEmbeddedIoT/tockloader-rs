@@ -24,7 +24,7 @@ impl CommandInstall for SerialConnection {
         }
 
         let stream = self.stream.as_mut().expect(
-            "Expected serial stream to be initialized. This should not happen if setup is correct.", 
+            "Expected serial stream to be initialized. This should not happen if setup is correct.",
         );
 
         let response = ping_bootloader_and_wait_for_response(stream).await?;
