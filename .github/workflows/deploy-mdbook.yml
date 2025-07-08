@@ -1,16 +1,21 @@
-name: Deploy mdBook to GitHub Pages (Branch Deployment)
+name: Deploy mdBook to GitHub Pages (With PR Preview)
 
 on:
   push:
     branches:
-      - main # Deploy the main site when pushing to 'main'
-      # - preview-test # You can add this if you want to deploy from 'preview-test' as well
+      - main
+      - gh-pages
+  pull_request:
+    branches:
+      - main
 
 permissions:
-  contents: write # This is crucial: the workflow needs write access to push to the gh-pages branch
+  contents: write
+  pages: write
+  id-token: write
 
 jobs:
-  deploy-book:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -26,13 +31,21 @@ jobs:
           fi
 
       - name: Build mdBook
-        run: mdbook build docs # This builds your book into 'docs/book'
+        run: mdbook build docs
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4 # Use this action for direct branch deployment
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./docs/book # The directory containing your built book files
-          publish_branch: gh-pages # The branch where your GitHub Pages content will live
-          # The default 'gh-pages' branch is commonly used for this.
-          # It will be created if it doesn't exist.
+          path: ./docs/book
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.action == 'opened' || github.event.action == 'synchronize'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
