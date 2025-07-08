@@ -1,71 +1,38 @@
-name: Deploy mdBook to GitHub Pages
+name: Deploy mdBook to GitHub Pages (Branch Deployment)
 
 on:
   push:
     branches:
-      - preview-test
-      - main # This workflow will run on pushes to either 'preview-test' or 'main'
+      - main # Deploy the main site when pushing to 'main'
+      # - preview-test # You can add this if you want to deploy from 'preview-test' as well
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write # These permissions are necessary for GitHub Pages deployment actions
+  contents: write # This is crucial: the workflow needs write access to push to the gh-pages branch
 
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest # Specifies the operating system for the job
-
+  deploy-book:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4 # Checks out your repository code
+        uses: actions/checkout@v4
 
       - name: Install mdBook if missing
-        run: | # Installs mdBook if it's not already available on the runner
+        run: |
           if ! command -v mdbook >/dev/null; then
             echo "mdbook not found, installing..."
-            cargo install mdbook --version "^0.4" # Installs a compatible version of mdBook
+            cargo install mdbook --version "^0.4"
           else
             echo "mdbook is already installed"
           fi
 
       - name: Build mdBook
-        run: mdbook build docs # This command builds your mdBook.
-                               # It expects your mdBook source (src/, SUMMARY.md) to be in the 'docs' directory.
-                               # By default, it will output the compiled book to 'docs/book'.
+        run: mdbook build docs # This builds your book into 'docs/book'
 
-      # --- DEBUGGING STEPS START HERE ---
-      # These steps are added to help diagnose why 'docs/book' might not be found.
-      # After running, check the logs for these steps to see the directory contents.
-      - name: Debug: List contents of 'docs' directory
-        run: ls -F docs/ # Lists all files and directories directly inside 'docs/'
-        # Expected output here should include 'book/' if the build was successful.
-
-      - name: Debug: List contents of 'docs/book' directory
-        run: ls -F docs/book/ # Lists all files and directories inside 'docs/book/'
-        # This step will fail if 'docs/book' does not exist, which confirms the problem.
-        # If it exists, you should see your compiled HTML files here.
-      # --- DEBUGGING STEPS END HERE ---
-
-      - name: Configure Pages
-        id: pages
-        uses: actions/configure-pages@v5 # Sets up the GitHub Pages environment for deployment.
-                                         # This is required by actions/deploy-pages.
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v3 # Uploads the built book as an artifact.
-        with:
-          path: docs/book # The path to the directory containing your built book files.
-                          # This must match the output of 'mdbook build docs'.
-
-  deploy:
-    needs: build-and-deploy # Ensures this job only runs after 'build-and-deploy' completes successfully
-    runs-on: ubuntu-latest # Specifies the operating system for the job
-    environment:
-      name: github-pages # The standard environment name for GitHub Pages deployments
-      url: ${{ steps.deployment.outputs.page_url }} # Gets the URL of the deployed site
-
-    steps:
       - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4 # Deploys the uploaded artifact to GitHub Pages.
-                                     # Using v4 for the latest features and stability.
+        uses: peaceiris/actions-gh-pages@v4 # Use this action for direct branch deployment
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/book # The directory containing your built book files
+          publish_branch: gh-pages # The branch where your GitHub Pages content will live
+          # The default 'gh-pages' branch is commonly used for this.
+          # It will be created if it doesn't exist.
