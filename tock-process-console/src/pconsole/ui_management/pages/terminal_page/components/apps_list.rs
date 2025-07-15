@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::state_store::{Action, State};
-use crate::ui_management::components::{Component, ComponentRender};
-use crate::ui_management::pages::terminal_page::section::SectionActivation;
+use crate::pconsole::state_store::{Action, State};
+use crate::pconsole::ui_management::components::{Component, ComponentRender};
+use crate::pconsole::ui_management::pages::terminal_page::section::SectionActivation;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};

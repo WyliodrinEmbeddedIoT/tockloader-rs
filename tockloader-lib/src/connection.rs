@@ -117,6 +117,9 @@ impl SerialConnection {
             port,
         }
     }
+    pub fn into_inner_stream(self) -> Option<SerialStream> {
+        self.stream
+    }
 }
 
 #[async_trait]

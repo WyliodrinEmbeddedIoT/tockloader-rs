@@ -4,7 +4,7 @@
 use self::setup_page::SetupPage;
 use self::terminal_page::main_page::MainPage;
 use super::components::{Component, ComponentRender};
-use crate::state_store::{Action, BoardConnectionStatus, State};
+use crate::pconsole::state_store::{Action, BoardConnectionStatus, State};
 use tokio::sync::mpsc::UnboundedSender;
 
 mod setup_page;
