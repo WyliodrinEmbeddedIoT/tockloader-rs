@@ -10,8 +10,8 @@ use ratatui::style::Style;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::state_store::{Action, AppData, State};
-use crate::ui_management::components::{Component, ComponentRender};
+use crate::pconsole::state_store::{Action, AppData, State};
+use crate::pconsole::ui_management::components::{Component, ComponentRender};
 
 use super::applications_page::ApplicationsPage;
 use super::components::apps_list;

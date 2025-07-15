@@ -3,9 +3,9 @@
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
 use super::{Action, State};
-use crate::board::connection::ConnectionHandler;
-use crate::board::event::Event;
-use crate::termination::{Interrupted, Terminator};
+use crate::pconsole::board::connection::ConnectionHandler;
+use crate::pconsole::board::event::Event;
+use crate::pconsole::termination::{Interrupted, Terminator};
 use bytes::Bytes;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
