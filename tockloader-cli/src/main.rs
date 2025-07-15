@@ -133,9 +133,22 @@ async fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("listen", sub_matches)) => {
             cli::validate(&mut cmd, sub_matches);
-            tock_process_console::run()
-                .await
-                .context("Failed to run console.")?;
+            let protocol = sub_matches
+                .get_one::<String>("protocol")
+                .map(String::as_str)
+                .unwrap_or("legacy");
+            match protocol {
+                "legacy" => {
+                    // start process for legacy mode
+                    tock_process_console::run()
+                        .await
+                        .context("Failed to run console.")?;
+                }
+                "pconsole" => {
+                    // TODO
+                }
+                _ => {}
+            }
         }
         Some(("list", sub_matches)) => {
             cli::validate(&mut cmd, sub_matches);
