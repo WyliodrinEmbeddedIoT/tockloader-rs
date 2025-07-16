@@ -3,7 +3,7 @@
 # Copyright OXIDOS AUTOMOTIVE 2024.
 
 [package]
-name = "tock-process-console"
+name = "process-console"
 version = "0.1.0"
 edition = "2021"
 

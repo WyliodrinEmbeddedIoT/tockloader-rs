@@ -139,15 +139,18 @@ async fn main() -> Result<()> {
                 .unwrap_or("legacy");
             match protocol {
                 "legacy" => {
-                    // start process for legacy mode
-                    tock_process_console::run()
+                    // TODO
+                    process_console::legacy::lib::run();
+                }
+                "pconsole" => {
+                    // start in pconsole mode
+                    process_console::pconsole::lib::run()
                         .await
                         .context("Failed to run console.")?;
                 }
-                "pconsole" => {
-                    // TODO
+                _ => {
+                    panic!();
                 }
-                _ => {}
             }
         }
         Some(("list", sub_matches)) => {
