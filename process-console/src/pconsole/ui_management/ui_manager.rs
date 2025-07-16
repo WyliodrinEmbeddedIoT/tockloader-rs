@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::pconsole::lib::state_store::{Action, State};
-use crate::pconsole::lib::termination::Interrupted;
-use crate::pconsole::lib::ui_management::components::{Component, ComponentRender};
-use crate::pconsole::lib::ui_management::pages::AppRouter;
+use crate::pconsole::state_store::{Action, State};
+use crate::pconsole::termination::Interrupted;
+use crate::pconsole::ui_management::components::{Component, ComponentRender};
+use crate::pconsole::ui_management::pages::AppRouter;
 use anyhow::Context;
 use crossterm::event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream};
 use crossterm::execute;

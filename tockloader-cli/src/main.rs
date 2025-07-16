@@ -140,11 +140,11 @@ async fn main() -> Result<()> {
             match protocol {
                 "legacy" => {
                     // TODO
-                    process_console::legacy::lib::run();
+                    process_console::legacy::run();
                 }
                 "pconsole" => {
                     // start in pconsole mode
-                    process_console::pconsole::lib::run()
+                    process_console::pconsole::run()
                         .await
                         .context("Failed to run console.")?;
                 }
