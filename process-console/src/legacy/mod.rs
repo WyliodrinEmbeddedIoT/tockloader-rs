@@ -1,1 +1,4 @@
-pub mod lib;
+pub fn run() {
+    // TODO
+    panic!();
+}
