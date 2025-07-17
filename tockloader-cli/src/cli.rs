@@ -66,6 +66,11 @@ fn get_channel_args() -> Vec<clap::Arg> {
     let serial_args_ids = get_serial_args_ids().into_iter();
 
     vec![
+        arg!(--protocol <PROTOCOL> "Choose between legacy and pconsole protocol")
+            .default_value("legacy")
+            .hide_default_value(true)
+            .value_parser(["legacy", "pconsole"])
+            .hide_possible_values(true),
         arg!(--serial "Use the serial bootloader to flash")
             .action(clap::ArgAction::SetTrue)
             .conflicts_with_all(probe_args_ids.clone().collect::<Vec<_>>()),
