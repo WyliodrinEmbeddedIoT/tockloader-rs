@@ -11,4 +11,5 @@ members = [
     "tock-process-console", 
     "tbf-parser",
     "tockloader-lib",
+    "tock-ui",
 ]
