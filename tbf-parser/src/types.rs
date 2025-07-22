@@ -106,7 +106,7 @@ impl fmt::Debug for TbfParseError {
             TbfParseError::TooManyEntries(tipe) => {
                 write!(
                     f,
-                    "There are too many variable entries of {tipe} for Tock to parse"
+                    "There are too many variable entries of {tipe} for Tock to parse",
                 )
             }
             TbfParseError::PackageNameTooLong => write!(f, "The package name is too long."),
@@ -137,6 +137,7 @@ pub enum TbfHeaderTypes {
     TbfHeaderStoragePermissions = 7,
     TbfHeaderKernelVersion = 8,
     TbfHeaderProgram = 9,
+    TbfHeaderShortId = 10,
     TbfFooterCredentials = 128,
 
     /// Some field in the header that we do not understand. Since the TLV format
@@ -254,6 +255,14 @@ pub struct TbfHeaderV2KernelVersion {
     minor: u16,
 }
 
+/// The v2 ShortId for apps.
+///
+/// Header to specify a fixed ShortID for an app.
+#[derive(Clone, Copy, Debug)]
+pub struct TbfHeaderV2ShortId {
+    short_id: Option<core::num::NonZeroU32>,
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TbfFooterV2CredentialsType {
     Reserved = 0,
@@ -262,6 +271,7 @@ pub enum TbfFooterV2CredentialsType {
     SHA256 = 3,
     SHA384 = 4,
     SHA512 = 5,
+    EcdsaNistP256 = 6,
 }
 
 /// Reference: https://github.com/tock/tock/blob/master/doc/reference/trd-appid.md#52-credentials-footer
@@ -274,6 +284,7 @@ pub enum TbfFooterV2Credentials {
     SHA256(TbfFooterV2SHA<32>),
     SHA384(TbfFooterV2SHA<48>),
     SHA512(TbfFooterV2SHA<64>),
+    EcdsaNistP256(TbfFooterV2Ecdsa<32>),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -285,6 +296,12 @@ pub struct TbfFooterV2SHA<const L: usize> {
 pub struct TbfFooterV2RSA<const L: usize> {
     public_key: [u8; L],
     signature: [u8; L],
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct TbfFooterV2Ecdsa<const L: usize> {
+    signature_r: [u8; L],
+    signature_s: [u8; L],
 }
 
 impl<const L: usize> TbfFooterV2SHA<L> {
@@ -317,6 +334,20 @@ impl<const L: usize> TbfFooterV2RSA<L> {
 
     pub fn get_signature(&self) -> &[u8; L] {
         &self.signature
+    }
+}
+
+impl<const L: usize> TbfFooterV2Ecdsa<L> {
+    pub fn get_format(&self) -> Result<TbfFooterV2CredentialsType, TbfParseError> {
+        Ok(TbfFooterV2CredentialsType::EcdsaNistP256)
+    }
+
+    pub fn get_signature_r(&self) -> &[u8; L] {
+        &self.signature_r
+    }
+
+    pub fn get_signature_s(&self) -> &[u8; L] {
+        &self.signature_s
     }
 }
 
@@ -372,6 +403,7 @@ impl core::convert::TryFrom<u16> for TbfHeaderTypes {
             7 => Ok(TbfHeaderTypes::TbfHeaderStoragePermissions),
             8 => Ok(TbfHeaderTypes::TbfHeaderKernelVersion),
             9 => Ok(TbfHeaderTypes::TbfHeaderProgram),
+            10 => Ok(TbfHeaderTypes::TbfHeaderShortId),
             128 => Ok(TbfHeaderTypes::TbfFooterCredentials),
             _ => Ok(TbfHeaderTypes::Unknown),
         }
@@ -675,6 +707,20 @@ impl core::convert::TryFrom<&[u8]> for TbfHeaderV2KernelVersion {
     }
 }
 
+impl core::convert::TryFrom<&[u8]> for TbfHeaderV2ShortId {
+    type Error = TbfParseError;
+
+    fn try_from(b: &[u8]) -> Result<TbfHeaderV2ShortId, Self::Error> {
+        Ok(TbfHeaderV2ShortId {
+            short_id: core::num::NonZeroU32::new(u32::from_le_bytes(
+                b.get(0..4)
+                    .ok_or(TbfParseError::InternalError)?
+                    .try_into()?,
+            )),
+        })
+    }
+}
+
 impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
     type Error = TbfParseError;
 
@@ -691,6 +737,7 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
             3 => TbfFooterV2CredentialsType::SHA256,
             4 => TbfFooterV2CredentialsType::SHA384,
             5 => TbfFooterV2CredentialsType::SHA512,
+            6 => TbfFooterV2CredentialsType::EcdsaNistP256,
             _ => {
                 return Err(TbfParseError::InternalError);
             }
@@ -702,6 +749,7 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
             TbfFooterV2CredentialsType::SHA256 => 32,
             TbfFooterV2CredentialsType::SHA384 => 48,
             TbfFooterV2CredentialsType::SHA512 => 64,
+            TbfFooterV2CredentialsType::EcdsaNistP256 => 64,
         };
 
         let data = b
@@ -747,6 +795,16 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
                         .map_err(|_| TbfParseError::InternalError)?,
                 }))
             }
+            TbfFooterV2CredentialsType::EcdsaNistP256 => {
+                Ok(TbfFooterV2Credentials::EcdsaNistP256(TbfFooterV2Ecdsa {
+                    signature_r: data[0..32]
+                        .try_into()
+                        .map_err(|_| TbfParseError::InternalError)?,
+                    signature_s: data[32..64]
+                        .try_into()
+                        .map_err(|_| TbfParseError::InternalError)?,
+                }))
+            }
         }
     }
 }
@@ -760,6 +818,7 @@ impl TbfFooterV2Credentials {
             TbfFooterV2Credentials::SHA256(_) => "SHA256",
             TbfFooterV2Credentials::SHA384(_) => "SHA384",
             TbfFooterV2Credentials::SHA512(_) => "SHA512",
+            TbfFooterV2Credentials::EcdsaNistP256(_) => "EcdsaNistP256",
         }
     }
 }
@@ -794,6 +853,7 @@ pub struct TbfHeaderV2 {
     pub(crate) permissions: Option<TbfHeaderV2Permissions<8>>,
     pub(crate) storage_permissions: Option<TbfHeaderV2StoragePermissions<NUM_STORAGE_PERMISSIONS>>,
     pub(crate) kernel_version: Option<TbfHeaderV2KernelVersion>,
+    pub(crate) short_id: Option<TbfHeaderV2ShortId>,
 }
 
 /// Type that represents the fields of the Tock Binary Format header.
@@ -967,13 +1027,13 @@ impl TbfHeader {
     }
 
     /// Get the offset and size of a given flash region.
-    pub fn get_writeable_flash_region(&self, index: usize) -> (u32, u32) {
+    pub fn get_writeable_flash_region(&self, index: usize) -> (usize, usize) {
         match *self {
             TbfHeader::TbfHeaderV2(hd) => hd.writeable_regions.map_or((0, 0), |wrs| {
                 wrs.get(index).unwrap_or(&None).map_or((0, 0), |wr| {
                     (
-                        wr.writeable_flash_region_offset,
-                        wr.writeable_flash_region_size,
+                        wr.writeable_flash_region_offset as usize,
+                        wr.writeable_flash_region_size as usize,
                     )
                 })
             }),
@@ -1112,6 +1172,15 @@ impl TbfHeader {
         match self {
             TbfHeader::TbfHeaderV2(hd) => hd.program.map_or(0, |p| p.version),
             _ => 0,
+        }
+    }
+
+    /// Return the fixed ShortId of the application if it was specified in the
+    /// TBF header.
+    pub fn get_fixed_short_id(&self) -> Option<core::num::NonZeroU32> {
+        match self {
+            TbfHeader::TbfHeaderV2(hd) => hd.short_id.and_then(|si| si.short_id),
+            _ => None,
         }
     }
 }
