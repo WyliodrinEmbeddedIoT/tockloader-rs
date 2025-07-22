@@ -341,7 +341,7 @@ impl<const L: usize> TbfFooterV2RSA<L> {
     }
 }
 
-impl<const L: usize> TbfFooterV2Ecdsa<L>{
+impl<const L: usize> TbfFooterV2Ecdsa<L> {
     pub fn get_format(&self) -> Result<TbfFooterV2CredentialsType, TbfParseError> {
         Ok(TbfFooterV2CredentialsType::EcdsaNistP256)
     }
@@ -362,7 +362,6 @@ impl<const L: usize> TbfFooterV2Ecdsa<L>{
         &self.signature_s
     }
 }
-
 
 impl core::convert::TryFrom<&[u8]> for TbfHeaderV2Base {
     type Error = TbfParseError;
