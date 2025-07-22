@@ -101,7 +101,7 @@ impl fmt::Debug for TbfParseError {
                 "Checksum verification failed: app:{:#x}, calc:{:#x}",
                 app, calc
             ),
-            TbfParseError::BadTlvEntry(tipe) => write!(f, "TLV entry type {} is invalid", tipe),
+            TbfParseError::BadTlvEntry(tipe) => write!(f, "TLV entry type {tipe} is invalid"),
             TbfParseError::BadProcessName => write!(f, "Process name not UTF-8"),
             TbfParseError::InternalError => write!(f, "Internal kernel error. This is a bug."),
             TbfParseError::TooManyEntries(tipe) => {
