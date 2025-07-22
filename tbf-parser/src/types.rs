@@ -94,7 +94,7 @@ impl fmt::Debug for TbfParseError {
         match self {
             TbfParseError::NotEnoughFlash => write!(f, "Buffer too short to parse TBF header"),
             TbfParseError::UnsupportedVersion(version) => {
-                write!(f, "TBF version {} unsupported", version)
+                write!(f, "TBF version {version} unsupported")
             }
             TbfParseError::ChecksumMismatch(app, calc) => write!(
                 f,
@@ -107,8 +107,7 @@ impl fmt::Debug for TbfParseError {
             TbfParseError::TooManyEntries(tipe) => {
                 write!(
                     f,
-                    "There are too many variable entries of {} for Tock to parse",
-                    tipe
+                    "There are too many variable entries of {tipe} for Tock to parse",
                 )
             }
             TbfParseError::PackageNameTooLong => write!(f, "The package name is too long."),
