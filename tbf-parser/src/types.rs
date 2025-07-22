@@ -98,8 +98,7 @@ impl fmt::Debug for TbfParseError {
             }
             TbfParseError::ChecksumMismatch(app, calc) => write!(
                 f,
-                "Checksum verification failed: app:{app:#x}, calc:{calc:#x}",
-                app, calc
+                "Checksum verification failed: app:{app:#x}, calc:{calc:#x}"
             ),
             TbfParseError::BadTlvEntry(tipe) => write!(f, "TLV entry type {tipe} is invalid"),
             TbfParseError::BadProcessName => write!(f, "Process name not UTF-8"),
