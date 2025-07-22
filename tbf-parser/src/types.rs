@@ -98,7 +98,7 @@ impl fmt::Debug for TbfParseError {
             }
             TbfParseError::ChecksumMismatch(app, calc) => write!(
                 f,
-                "Checksum verification failed: app:{:#x}, calc:{:#x}",
+                "Checksum verification failed: app:{app:#x}, calc:{calc:#x}",
                 app, calc
             ),
             TbfParseError::BadTlvEntry(tipe) => write!(f, "TLV entry type {tipe} is invalid"),
