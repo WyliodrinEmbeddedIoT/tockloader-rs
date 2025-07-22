@@ -1,4 +1,4 @@
-use tbf_parser::parse::*;
+use tbf_parser::{parse::*};
 use tbf_parser::types::{TbfFooterV2Credentials, TbfFooterV2CredentialsType};
 
 #[test]
