@@ -1,12 +1,11 @@
 use std::time::Duration;
 
+use crate::errors::TockloaderError;
 use async_trait::async_trait;
 use probe_rs::probe::DebugProbeInfo;
 use probe_rs::{Permissions, Session};
 use tokio::io::AsyncWriteExt;
 use tokio_serial::{FlowControl, Parity, SerialPort, SerialStream, StopBits};
-
-use crate::errors::TockloaderError;
 
 pub struct ProbeTargetInfo {
     pub chip: String,
@@ -54,10 +53,10 @@ pub trait Connection {
 }
 
 pub struct ProbeRSConnection {
-    pub(crate) session: Option<Session>,
+    pub session: Option<Session>,
     /// Used both to open new conections but also used during the session to
     /// provide information about the target
-    pub(crate) target_info: ProbeTargetInfo,
+    pub target_info: ProbeTargetInfo,
     /// Only used for opening a new connection
     debug_probe: DebugProbeInfo,
 }
