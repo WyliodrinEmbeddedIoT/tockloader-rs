@@ -146,7 +146,7 @@ async fn connect_to_serial(
     println!("Attempting to connect to serial port: {port_name}");
     println!("Settings: Baud={baud_rate}, Parity={parity_str}, StopBits={stop_bits_str}, Flow={flow_control_str}, Timeout={timeout_ms}ms, RTS={request_to_send}, DTR={data_terminal_ready}",
     );
-    
+
     // Parse string inputs into tokio_serial enums
     let parity = match parity_str.as_str() {
         "None" => Parity::None,
