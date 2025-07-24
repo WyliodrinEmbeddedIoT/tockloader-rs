@@ -70,6 +70,14 @@ impl ProbeRSConnection {
             debug_probe,
         }
     }
+
+    pub fn get_chip(&self) -> &str {
+        &self.target_info.chip
+    }
+
+    pub fn get_core(&self) -> usize {
+        self.target_info.core
+    }
 }
 
 #[async_trait]
