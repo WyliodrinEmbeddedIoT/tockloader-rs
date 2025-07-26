@@ -4,7 +4,7 @@
 
 // The "X" commands are for external flash
 
-use crate::errors;
+use crate::errors::{self, InternalError, TockError};
 use bytes::BytesMut;
 use errors::TockloaderError;
 use std::time::Duration;
@@ -16,6 +16,8 @@ pub const SYNC_MESSAGE: [u8; 3] = [0x00, 0xFC, 0x05];
 
 // "This was chosen as it is infrequent in .bin files" - immesys
 pub const ESCAPE_CHAR: u8 = 0xFC;
+
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
 
 #[allow(dead_code)]
 pub enum Command {
@@ -99,46 +101,77 @@ impl From<u8> for Response {
 pub async fn toggle_bootloader_entry_dtr_rts(
     port: &mut SerialStream,
 ) -> Result<(), TockloaderError> {
-    port.write_data_terminal_ready(true)
-        .map_err(TockloaderError::SerialInitializationError)?;
-    port.write_request_to_send(true)
-        .map_err(TockloaderError::SerialInitializationError)?;
+    port.write_data_terminal_ready(true)?;
+    port.write_request_to_send(true)?;
 
     tokio::time::sleep(Duration::from_millis(100)).await;
 
-    port.write_data_terminal_ready(false)
-        .map_err(TockloaderError::SerialInitializationError)?;
+    port.write_data_terminal_ready(false)?;
 
     tokio::time::sleep(Duration::from_millis(500)).await;
 
-    port.write_request_to_send(false)
-        .map_err(TockloaderError::SerialInitializationError)?;
+    port.write_request_to_send(false)?;
 
     Ok(())
+}
+
+async fn read_bytes(
+    port: &mut SerialStream,
+    bytes_to_read: usize,
+    timeout: Duration,
+) -> Result<BytesMut, TockloaderError> {
+    let mut ret = BytesMut::with_capacity(bytes_to_read);
+    let mut read_bytes = 0;
+
+    tokio::time::timeout(timeout, async {
+        while read_bytes < bytes_to_read {
+            read_bytes += port
+                .read_buf(&mut ret)
+                .await
+                .map_err(|e| TockloaderError::Serial(e.into()))?;
+        }
+        Ok(ret)
+    })
+    .await
+    .map_err(|_| TockError::BootloaderTimeout)?
+}
+
+async fn write_bytes(
+    port: &mut SerialStream,
+    bytes: &[u8],
+    timeout: Duration,
+) -> Result<(), TockloaderError> {
+    let mut bytes_written = 0;
+
+    tokio::time::timeout(timeout, async {
+        while bytes_written != bytes.len() {
+            bytes_written += port
+                .write_buf(&mut &bytes[bytes_written..])
+                .await
+                .map_err(|e| TockloaderError::Serial(e.into()))?;
+        }
+        Ok(())
+    })
+    .await
+    .map_err(|_| TockError::BootloaderTimeout)?
 }
 
 #[allow(dead_code)]
 pub async fn ping_bootloader_and_wait_for_response(
     port: &mut SerialStream,
-) -> Result<Response, TockloaderError> {
+) -> Result<(), TockloaderError> {
     let ping_pkt = [ESCAPE_CHAR, Command::Ping as u8];
 
-    let mut ret = BytesMut::with_capacity(200);
-
     for _ in 0..30 {
-        let mut bytes_written = 0;
-        while bytes_written != ping_pkt.len() {
-            bytes_written += port.write_buf(&mut &ping_pkt[bytes_written..]).await?;
-        }
-        let mut read_bytes = 0;
-        while read_bytes < 2 {
-            read_bytes += port.read_buf(&mut ret).await?;
-        }
+        write_bytes(port, &ping_pkt, DEFAULT_TIMEOUT).await?;
+        let ret = read_bytes(port, 2, DEFAULT_TIMEOUT).await?;
+
         if ret[1] == Response::Pong as u8 {
-            return Ok(Response::from(ret[1]));
+            return Ok(());
         }
     }
-    Ok(Response::from(ret[1]))
+
+    Err(InternalError::BootloaderNotPresent.into())
 }
 
 #[allow(dead_code)]
@@ -174,46 +207,37 @@ pub async fn issue_command(
     }
 
     // Write the command message
-    let mut bytes_written = 0;
-    while bytes_written != message.len() {
-        bytes_written += port.write_buf(&mut &message[bytes_written..]).await?;
-    }
+    write_bytes(port, &message, DEFAULT_TIMEOUT).await?;
 
     // Response has a two byte header, then response_len bytes
-    let bytes_to_read = 2 + response_len;
-    let mut ret = BytesMut::with_capacity(2);
+    let header = read_bytes(port, 2, DEFAULT_TIMEOUT).await?;
 
-    // We are waiting for 2 bytes to be read
-    let mut read_bytes = 0;
-    while read_bytes < 2 {
-        read_bytes += port.read_buf(&mut ret).await?;
+    if header[0..2] != [ESCAPE_CHAR, response_code as u8] {
+        return Err(TockError::BootloaderBadHeader(header[0], header[1]).into());
     }
-
-    if ret[0] != ESCAPE_CHAR {
-        return Err(TockloaderError::BootloaderError(ret[0]));
-    }
-
-    if ret[1] != response_code.clone() as u8 {
-        return Err(TockloaderError::BootloaderError(ret[1]));
-    }
-
-    let mut new_data: Vec<u8> = Vec::new();
-    let mut value = 2;
 
     if response_len != 0 {
-        while bytes_to_read > value {
-            value += port.read_buf(&mut new_data).await?;
-        }
+        let input = read_bytes(port, response_len, DEFAULT_TIMEOUT).await?;
+        let mut result = Vec::with_capacity(input.len());
 
         // De-escape and add array of read in the bytes
-        for i in 0..(new_data.len() - 1) {
-            if new_data[i] == ESCAPE_CHAR && new_data[i + 1] == ESCAPE_CHAR {
-                new_data.remove(i + 1);
+
+        // TODO(george-cosma): Extract this into a function and unit test this.
+        let mut i = 0;
+        while i < input.len() {
+            if i + 1 < input.len() && input[i] == ESCAPE_CHAR && input[i + 1] == ESCAPE_CHAR {
+                // Found consecutive ESCAPE_CHAR bytes, add only one
+                result.push(ESCAPE_CHAR);
+                i += 2; // Skip both bytes
+            } else {
+                // Not consecutive ESCAPE_CHAR, add the current byte
+                result.push(input[i]);
+                i += 1;
             }
         }
 
-        ret.extend_from_slice(&new_data);
+        Ok((Response::from(header[1]), result))
+    } else {
+        Ok((Response::from(header[1]), vec![]))
     }
-
-    Ok((Response::from(ret[1]), ret[2..].to_vec()))
 }
