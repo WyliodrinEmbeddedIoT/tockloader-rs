@@ -5,7 +5,7 @@
 use clap::error::ErrorKind;
 use clap::{arg, crate_version, value_parser, ArgMatches, Command};
 
-use crate::known_boards::KnownBoardNames;
+use crate::known_boards::list_known_board_names;
 
 /// Create the [command](clap::Command) object which will handle all of the command line arguments.
 pub fn make_cli() -> Command {
@@ -65,11 +65,17 @@ fn get_channel_args() -> Vec<clap::Arg> {
     let probe_args_ids = get_probe_args_ids().into_iter();
     let serial_args_ids = get_serial_args_ids().into_iter();
 
+    let known_board_names = list_known_board_names()
+        .into_iter()
+        .map(|x| x.to_str())
+        .collect::<Vec<_>>();
+
     vec![
         arg!(--serial "Use the serial bootloader to flash")
             .action(clap::ArgAction::SetTrue)
             .conflicts_with_all(probe_args_ids.clone().collect::<Vec<_>>()),
         arg!(--board <BOARD> "Explicitly specify the board that is being targeted")
+            .value_parser(known_board_names)
             .conflicts_with_all(
                 serial_args_ids
                     .clone()
@@ -130,22 +136,9 @@ pub fn validate(cmd: &mut Command, user_options: &ArgMatches) {
     {
         cmd.error(
             ErrorKind::MissingRequiredArgument,
-            "the argument '--chip' is required for probe connections when not using a known board.",
+            "the argument '--chip' is required for probe connections. This can be inferred using a known board ('--board').",
         )
         .exit();
-    }
-
-    // Make sure 'board' is a known board
-    if let Some(board) = user_options.get_one::<String>("board") {
-        match KnownBoardNames::from_str(board) {
-            Some(_) => (),
-            None => cmd
-                .error(
-                    ErrorKind::InvalidValue,
-                    "the argument '--board' has an invalid value.",
-                )
-                .exit(),
-        }
     }
 }
 
