@@ -5,7 +5,7 @@ use tbf_parser::parse::parse_tbf_header_lengths;
 
 use crate::board_settings::BoardSettings;
 use crate::connection::{Connection, ProbeRSConnection};
-use crate::errors::TockloaderError;
+use crate::errors::{InternalError, TockloaderError};
 use crate::tabs::tab::Tab;
 use crate::CommandInstall;
 
@@ -17,13 +17,11 @@ impl CommandInstall for ProbeRSConnection {
         tab_file: Tab,
     ) -> Result<(), TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            return Err(InternalError::ConnectionNotOpen.into());
         }
         let session = self.session.as_mut().expect("Board must be open");
 
-        let mut core = session
-            .core(self.target_info.core)
-            .map_err(|e| TockloaderError::CoreAccessError(self.target_info.core, e))?;
+        let mut core = session.core(self.target_info.core)?;
 
         // TODO(george-cosma): extract these informations without bootloader
         // TODO(george-cosma): extract board name and kernel version to verify app compatability
@@ -35,8 +33,7 @@ impl CommandInstall for ProbeRSConnection {
         // Read a block of 200 8-bit words// Loop to check if there are another apps installed
         loop {
             let mut buff = vec![0u8; 200];
-            core.read(address, &mut buff)
-                .map_err(TockloaderError::ProbeRsReadError)?;
+            core.read(address, &mut buff)?;
 
             let (_ver, _header_len, whole_len) = match parse_tbf_header_lengths(
                 &buff[0..8]
@@ -49,15 +46,16 @@ impl CommandInstall for ProbeRSConnection {
             address += whole_len as u64;
         }
 
-        // TODO: extract arch(?)
+        // TODO(george-cosma): extract arch(?)
+        // TODO(george-cosma): THIS IS NOT A TOCK ERROR, this is an error due to invalid board settings.
         let arch = settings
             .arch
-            .clone()
-            .ok_or(TockloaderError::MisconfiguredBoard(
-                "No architecture found.".to_owned(),
+            .as_ref()
+            .ok_or(InternalError::MisconfiguredBoardSettings(
+                "architechture".to_owned(),
             ))?;
 
-        let mut binary = tab_file.extract_binary(&arch)?;
+        let mut binary = tab_file.extract_binary(arch)?;
         let size = binary.len() as u64;
 
         // Make sure the app is aligned to a multiple of its size
@@ -145,20 +143,17 @@ impl CommandInstall for ProbeRSConnection {
             }
             let mut loader = session.target().flash_loader();
 
-            loader
-                .add_data(
-                    (new_address as u32 + (i as usize * page_size) as u32).into(),
-                    &pkt,
-                )
-                .map_err(TockloaderError::ProbeRsWriteError)?;
+            loader.add_data(
+                (new_address as u32 + (i as usize * page_size) as u32).into(),
+                &pkt,
+            )?;
 
             let mut options = DownloadOptions::default();
             options.keep_unwritten_bytes = true;
 
             // Finally, the data can be programmed
-            loader
-                .commit(session, options)
-                .map_err(TockloaderError::ProbeRsWriteError)?;
+            // TODO(george-cosma): Can we move this outside the loop? Commit once?
+            loader.commit(session, options)?;
         }
 
         Ok(())

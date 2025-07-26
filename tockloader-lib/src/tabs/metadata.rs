@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::errors::TockloaderError;
+use crate::errors::{TabError, TockloaderError};
 use serde::Deserialize;
 
 #[allow(dead_code)]
@@ -25,7 +25,7 @@ pub(super) struct Metadata {
 
 impl Metadata {
     pub fn new(metadata: String) -> Result<Self, TockloaderError> {
-        toml::from_str(&metadata).map_err(TockloaderError::InvalidMetadata)
+        toml::from_str(&metadata).map_err(|e| TabError::InvalidMetadata(e).into())
     }
 }
 
