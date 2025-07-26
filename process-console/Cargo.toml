@@ -3,7 +3,7 @@
 # Copyright OXIDOS AUTOMOTIVE 2024.
 
 [package]
-name = "tock-process-console"
+name = "process-console"
 version = "0.1.0"
 edition = "2021"
 
@@ -24,4 +24,9 @@ queues = "1.0.2"
 itertools = "0.12.1"
 ratatui = "0.28.0"
 probe-rs = "0.24.0"
-
+clap = { version = "4.1.1", features = ["cargo"] }
+async-trait = "0.1.73"
+enum_dispatch = "0.3.12"
+console = { git = "https://github.com/george-cosma/console.git", branch = "unblock" }
+futures = "0.3.31"
+tokio-util = "0.7.15"

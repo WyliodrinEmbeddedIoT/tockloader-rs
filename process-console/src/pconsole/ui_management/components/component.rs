@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::state_store::{Action, State};
+use crate::pconsole::state_store::{Action, State};
 use crossterm::event::{KeyEvent, MouseEvent};
 use ratatui::Frame;
 use tokio::sync::mpsc::UnboundedSender;

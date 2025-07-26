@@ -8,7 +8,7 @@ resolver= "3"
 
 members = [
     "tockloader-cli",
-    "tock-process-console", 
+    "process-console", 
     "tbf-parser",
     "tockloader-lib",
     "tock-ui/src-tauri",
