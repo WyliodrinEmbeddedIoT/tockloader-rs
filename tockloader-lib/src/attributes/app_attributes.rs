@@ -10,7 +10,7 @@ use tbf_parser::{self};
 use tokio_serial::SerialStream;
 
 use crate::bootloader_serial::{issue_command, Command, Response};
-use crate::errors::TockloaderError;
+use crate::errors::{TockError, TockloaderError};
 
 /// This structure contains all relevant information about a tock application.
 ///
@@ -74,9 +74,7 @@ impl AppAttributes {
         loop {
             let mut appdata = vec![0u8; 8];
 
-            board_core
-                .read(appaddr, &mut appdata)
-                .map_err(TockloaderError::ProbeRsReadError)?;
+            board_core.read(appaddr, &mut appdata)?;
 
             let tbf_version: u16;
             let header_size: u16;
@@ -102,11 +100,9 @@ impl AppAttributes {
 
             let mut header_data = vec![0u8; header_size as usize];
 
-            board_core
-                .read(appaddr, &mut header_data)
-                .map_err(TockloaderError::ProbeRsReadError)?;
+            board_core.read(appaddr, &mut header_data)?;
             let header = parse_tbf_header(&header_data, tbf_version)
-                .map_err(TockloaderError::ParsingError)?;
+                .map_err(TockError::InvalidAppTbfHeader)?;
 
             // The end of the application binary marks the beginning of the
             // footer.
@@ -129,12 +125,10 @@ impl AppAttributes {
                 let mut appfooter =
                     vec![0u8; (total_footers_size - (footer_offset - binary_end_offset)) as usize];
 
-                board_core
-                    .read(appaddr + footer_offset as u64, &mut appfooter)
-                    .map_err(TockloaderError::ProbeRsReadError)?;
+                board_core.read(appaddr + footer_offset as u64, &mut appfooter)?;
 
                 let footer_info =
-                    parse_tbf_footer(&appfooter).map_err(TockloaderError::ParsingError)?;
+                    parse_tbf_footer(&appfooter).map_err(TockError::InvalidAppTbfHeader)?;
 
                 footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
 
@@ -231,7 +225,7 @@ impl AppAttributes {
             .await?;
 
             let header = parse_tbf_header(&header_data, tbf_version)
-                .map_err(TockloaderError::ParsingError)?;
+                .map_err(TockError::InvalidAppTbfHeader)?;
             let binary_end_offset = header.get_binary_end();
 
             let mut footers: Vec<TbfFooter> = vec![];
@@ -264,7 +258,7 @@ impl AppAttributes {
                 .await?;
 
                 let footer_info =
-                    parse_tbf_footer(&appfooter).map_err(TockloaderError::ParsingError)?;
+                    parse_tbf_footer(&appfooter).map_err(TockError::InvalidAppTbfHeader)?;
 
                 footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
 

@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::errors::TockloaderError;
+use crate::errors::{TabError, TockloaderError};
 use crate::tabs::metadata::Metadata;
 use std::fs::File;
 use std::io::Read;
@@ -22,25 +22,28 @@ impl Tab {
     pub fn open(path: String) -> Result<Self, TockloaderError> {
         let mut metadata = None;
         let mut tbf_files = Vec::new();
-        let file = File::open(path).map_err(TockloaderError::UnusableTab)?;
-        let mut archive = Archive::new(file);
-        for file in archive.entries().map_err(TockloaderError::UnusableTab)? {
-            let mut file = file.map_err(TockloaderError::UnusableTab)?;
-            let path = file.path().map_err(TockloaderError::UnusableTab)?;
+        let tab_file = File::open(path).map_err(TabError::IO)?;
+        let mut archive = Archive::new(tab_file);
+
+        for archive_entry in archive.entries().map_err(TabError::IO)? {
+            let mut archive_file = archive_entry.map_err(TabError::IO)?;
+
+            let path = archive_file.path().map_err(TabError::IO)?;
             let file_name = match path.file_name().and_then(|name| name.to_str()) {
                 Some(name) => name.to_owned(),
                 None => continue,
             };
+
             if file_name == "metadata.toml" {
                 let mut buf = String::new();
-                file.read_to_string(&mut buf)
-                    .map_err(TockloaderError::UnusableTab)?;
+                archive_file
+                    .read_to_string(&mut buf)
+                    .map_err(TabError::IO)?;
                 metadata = Some(Metadata::new(buf)?);
             } else if file_name.ends_with(".tbf") {
                 let mut data = Vec::new();
 
-                file.read_to_end(&mut data)
-                    .map_err(TockloaderError::UnusableTab)?;
+                archive_file.read_to_end(&mut data).map_err(TabError::IO)?;
                 tbf_files.push(TbfFile {
                     filename: file_name.to_string(),
                     data,
@@ -53,7 +56,7 @@ impl Tab {
                 metadata,
                 tbf_files,
             }),
-            None => Err(TockloaderError::NoMetadata),
+            None => Err(TabError::MissingMetadata.into()),
         }
     }
 
@@ -79,6 +82,6 @@ impl Tab {
             }
         }
 
-        Err(TockloaderError::NoBinaryError(arch.to_owned()))
+        Err(TabError::MissingBinary(arch.to_owned()).into())
     }
 }
