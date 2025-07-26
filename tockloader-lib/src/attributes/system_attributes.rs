@@ -7,7 +7,7 @@ use probe_rs::{Core, MemoryInterface};
 use tokio_serial::SerialStream;
 
 use crate::bootloader_serial::{issue_command, Command, Response};
-use crate::errors::TockloaderError;
+use crate::errors::{TockError, TockloaderError};
 
 use super::decode::{bytes_to_string, decode_attribute};
 
@@ -81,9 +81,7 @@ impl SystemAttributes {
                                 16,
                             )
                             .map_err(|_| {
-                                TockloaderError::MisconfiguredBoard(
-                                    "Invalid start address.".to_owned(),
-                                )
+                                TockError::MisconfiguredBoard("Invalid start address.".to_owned())
                             })?,
                         );
                     }
@@ -104,7 +102,7 @@ impl SystemAttributes {
         let _ = board_core.read_8(address, &mut buf);
 
         let string = String::from_utf8(buf.to_vec()).map_err(|_| {
-            TockloaderError::MisconfiguredBoard(
+            TockError::MisconfiguredBoard(
                 "Data may be corrupted. System attribure is not UTF-8.".to_owned(),
             )
         })?;
@@ -114,14 +112,10 @@ impl SystemAttributes {
         result.bootloader_version = Some(string.to_owned());
 
         let mut kernel_attr_binary = [0u8; 100];
-        board_core
-            .read(
-                result.appaddr.ok_or(TockloaderError::MisconfiguredBoard(
-                    "No start address found.".to_owned(),
-                ))? - 100,
-                &mut kernel_attr_binary,
-            )
-            .map_err(TockloaderError::ProbeRsReadError)?;
+        let kernel_attr_addr = result.appaddr.ok_or(TockError::MisconfiguredBoard(
+            "No start address found.".to_owned(),
+        ))? - 100;
+        board_core.read(kernel_attr_addr, &mut kernel_attr_binary)?;
 
         let sentinel = bytes_to_string(&kernel_attr_binary[96..100]);
         let kernel_version = LittleEndian::read_uint(&kernel_attr_binary[95..96], 1);
@@ -192,9 +186,7 @@ impl SystemAttributes {
                                 16,
                             )
                             .map_err(|_| {
-                                TockloaderError::MisconfiguredBoard(
-                                    "Invalid start address.".to_owned(),
-                                )
+                                TockError::MisconfiguredBoard("Invalid start address.".to_owned())
                             })?,
                         );
                     }
@@ -218,7 +210,7 @@ impl SystemAttributes {
             issue_command(port, Command::ReadRange, pkt, true, 8, Response::ReadRange).await?;
 
         let string = String::from_utf8(buf).map_err(|_| {
-            TockloaderError::MisconfiguredBoard(
+            TockError::MisconfiguredBoard(
                 "Data may be corrupted. System attribure is not UTF-8.".to_owned(),
             )
         })?;
@@ -227,7 +219,7 @@ impl SystemAttributes {
 
         result.bootloader_version = Some(string.to_owned());
 
-        let mut pkt = ((result.appaddr.ok_or(TockloaderError::MisconfiguredBoard(
+        let mut pkt = ((result.appaddr.ok_or(TockError::MisconfiguredBoard(
             "No start address found.".to_owned(),
         ))? - 100) as u32)
             .to_le_bytes()
