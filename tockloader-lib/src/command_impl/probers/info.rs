@@ -5,7 +5,7 @@ use crate::attributes::general_attributes::GeneralAttributes;
 use crate::attributes::system_attributes::SystemAttributes;
 use crate::board_settings::BoardSettings;
 use crate::connection::{Connection, ProbeRSConnection};
-use crate::errors::TockloaderError;
+use crate::errors::{InternalError, TockloaderError};
 use crate::CommandInfo;
 
 #[async_trait]
@@ -15,13 +15,11 @@ impl CommandInfo for ProbeRSConnection {
         settings: &BoardSettings,
     ) -> Result<GeneralAttributes, TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            return Err(InternalError::ConnectionNotOpen.into());
         }
         let session = self.session.as_mut().expect("Board must be open");
 
-        let mut core = session
-            .core(self.target_info.core)
-            .map_err(|e| TockloaderError::CoreAccessError(self.target_info.core, e))?;
+        let mut core = session.core(self.target_info.core)?;
 
         // TODO(george-cosma): extract these informations without bootloader
         let system_attributes = SystemAttributes::read_system_attributes_probe(&mut core)?;

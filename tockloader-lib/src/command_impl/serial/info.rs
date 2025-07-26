@@ -8,7 +8,7 @@ use crate::attributes::system_attributes::SystemAttributes;
 use crate::board_settings::BoardSettings;
 use crate::bootloader_serial::{ping_bootloader_and_wait_for_response, Response};
 use crate::connection::{Connection, SerialConnection};
-use crate::errors::TockloaderError;
+use crate::errors::{InternalError, TockloaderError};
 use crate::CommandInfo;
 
 #[async_trait]
@@ -18,16 +18,11 @@ impl CommandInfo for SerialConnection {
         settings: &BoardSettings,
     ) -> Result<GeneralAttributes, TockloaderError> {
         if !self.is_open() {
-            return Err(TockloaderError::ConnectionNotOpen);
+            return Err(InternalError::ConnectionNotOpen.into());
         }
         let stream = self.stream.as_mut().expect("Board must be open");
 
-        let response = ping_bootloader_and_wait_for_response(stream).await?;
-
-        if response as u8 != Response::Pong as u8 {
-            tokio::time::sleep(Duration::from_millis(100)).await;
-            let _ = ping_bootloader_and_wait_for_response(stream).await?;
-        }
+        ping_bootloader_and_wait_for_response(stream).await?;
 
         let system_attributes = SystemAttributes::read_system_attributes_serial(stream).await?;
         let app_attributes =
