@@ -78,12 +78,12 @@ impl Connection for ProbeRSConnection {
         let probe = self
             .debug_probe
             .open()
-            .map_err(TockloaderError::ProbeRsInitializationError)?;
+            .map_err(|e| TockloaderError::Probe(e.into()))?;
 
         self.session = Some(
             probe
                 .attach(&self.target_info.chip, Permissions::default())
-                .map_err(TockloaderError::ProbeRsCommunicationError)?,
+                .map_err(|e| TockloaderError::Probe(e.into()))?,
         );
 
         Ok(())
@@ -129,7 +129,7 @@ impl Connection for SerialConnection {
             .timeout(self.target_info.timeout);
 
         let mut stream =
-            SerialStream::open(&builder).map_err(TockloaderError::SerialInitializationError)?;
+            SerialStream::open(&builder).map_err(|e| TockloaderError::Serial(e.into()))?;
 
         stream
             .write_request_to_send(self.target_info.request_to_send)

@@ -5,55 +5,77 @@
 use std::io;
 use thiserror::Error;
 
-// TODO(george-cosma): Split this. Possibly each meta-function (install, list,
-// ...) should have its own error type + error type for connection. We can have
-// more detailed errors as "sources" for more generic error types, if we TRULY
-// need to know why probe-rs failed. Or serial.
-
 #[derive(Debug, Error)]
 pub enum TockloaderError {
-    #[error("Failed due to the connection not being open.")]
-    ConnectionNotOpen,
+    #[error("Serial connection error: {0}")]
+    Serial(#[from] SerialError),
 
-    #[error("Error occurred while trying to access core: {0}")]
-    CoreAccessError(usize, probe_rs::Error),
+    #[error("Probe connection error: {0}")]
+    Probe(#[from] ProbeError),
 
-    #[error("Failed to initialize probe_rs connection due to a communication error. Inner: {0}")]
-    ProbeRsInitializationError(#[from] probe_rs::probe::DebugProbeError),
+    #[error("TAB file error: {0}")]
+    Tab(#[from] TabError),
 
-    #[error("Failed to establish communication with board. Inner: {0}")]
-    ProbeRsCommunicationError(probe_rs::Error),
+    #[error("Tock OS error: {0}")]
+    Tock(#[from] TockError),
 
-    #[error("Failed to read from debug probe. Inner: {0}")]
-    ProbeRsReadError(probe_rs::Error),
+    #[error("Internal tockloader error: {0}")]
+    Internal(#[from] InternalError),
+}
 
-    #[error("Failed to write binary. Inner: {0}")]
-    ProbeRsWriteError(#[from] probe_rs::flashing::FlashError),
+#[derive(Debug, Error)]
+pub enum SerialError {
+    #[error("Failed to interface in serial using tokio_serial: {0}")]
+    TokioSerial(#[from] tokio_serial::Error),
 
-    #[error("Failed to initialize serial connection due to a communication error. Inner: {0}")]
-    SerialInitializationError(#[from] tokio_serial::Error),
+    #[error("Failed to perform read/write operations on serial port: {0}")]
+    IO(#[from] io::Error),
+}
 
-    #[error("Bootloader did not respond properly: {0}")]
-    BootloaderError(u8),
+#[derive(Debug, Error)]
+pub enum ProbeError {
+    #[error("Failed to interact with probe: {0}")]
+    Probe(#[from] probe_rs::probe::DebugProbeError),
 
-    #[error("No binary found for {0} architecture.")]
-    NoBinaryError(String),
+    #[error("Communication with board failed: {0}")]
+    Communication(#[from] probe_rs::Error),
 
-    #[error("App data could not be parsed.")]
-    ParsingError(tbf_parser::types::TbfParseError),
+    #[error("Failed to flash data: {0}")]
+    Flashing(#[from] probe_rs::flashing::FlashError),
+}
 
-    #[error("Failed to perform read/write operations on serial port. Inner: {0}")]
-    IOError(#[from] io::Error),
+#[derive(Debug, Error)]
+pub enum TabError {
+    #[error("Failed to use tab from provided path: {0}")]
+    Unusable(io::Error),
 
-    #[error("Expected board attribute to be present")]
-    MisconfiguredBoard(String),
-
-    #[error("Failed to use tab from provided path. Inner: {0}")]
-    UnusableTab(io::Error),
-
-    #[error("Failed to parse metadata. Inner: {0}")]
+    #[error("Failed to parse metadata: {0}")]
     InvalidMetadata(toml::de::Error),
 
-    #[error("No metadata.toml found.")]
+    #[error("No metadata.toml found")]
     NoMetadata,
+
+    #[error("App data could not be parsed: {0:?}")]
+    Parsing(tbf_parser::types::TbfParseError),
+
+    #[error("No binary found for {0} architecture")]
+    NoBinary(String),
+}
+
+#[derive(Debug, Error)]
+pub enum TockError {
+    #[error("Bootloader did not respond properly: {0}")]
+    Bootloader(u8),
+
+    #[error("Expected board attribute to be present: {0}")]
+    MisconfiguredBoard(String),
+}
+
+#[derive(Debug, Error)]
+pub enum InternalError {
+    #[error("Operation failed due to board not being open.")]
+    ConnectionNotOpen,
+
+    #[error("Operation failed due to board not being in bootloader mode or not having a bootloader present.")]
+    BootloaderNotPresent,
 }
