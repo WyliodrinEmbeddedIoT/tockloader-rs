@@ -8,24 +8,37 @@ use thiserror::Error;
 // Rule of thumb: for public-facing functions or API use `TockloaderError`. For
 // crate-public/private functions you can use more specific errors.
 
+/// Represents all possible errors that can occur within the Tockloader context.
 #[derive(Debug, Error)]
 pub enum TockloaderError {
+    /// Represents an error that can occur during serial communication. This
+    /// does not include errors stemming from bad data or bad bootloader.
     #[error("Serial connection error: {0}")]
     Serial(#[from] SerialError),
 
+    /// Represents an error that can occur while interacting with a probe. This
+    /// does not include errors stemming from bad data.
     #[error("Probe connection error: {0}")]
     Probe(#[from] ProbeError),
 
+    /// Represents an error that can occur while parsing a tab file.
     #[error("TAB file error: {0}")]
     Tab(#[from] TabError),
 
+    /// Represents an error that can occur while parsing Tock OS data or
+    /// otherwise coming from a misconfigured of Tock OS.
     #[error("Tock OS error: {0}")]
     Tock(#[from] TockError),
 
+    /// Represents an error that occurs from internal violations of assumptions,
+    /// or inconsistent state. It usually represents something that the user of
+    /// this library did wrong.
     #[error("Internal tockloader error: {0}")]
     Internal(#[from] InternalError),
 }
 
+/// Represents errors that can occur during serial communication. This does not
+/// include errors stemming from bad data or bad bootloader.
 #[derive(Debug, Error)]
 pub enum SerialError {
     #[error("Failed to interface in serial using tokio_serial: {0}")]
@@ -35,6 +48,8 @@ pub enum SerialError {
     IO(#[from] io::Error),
 }
 
+/// Represents errors that can occur while interacting with a probe. This does
+/// not include errors stemming from bad data.
 #[derive(Debug, Error)]
 pub enum ProbeError {
     #[error("Failed to interact with probe: {0}")]
@@ -47,6 +62,7 @@ pub enum ProbeError {
     Flashing(#[from] probe_rs::flashing::FlashError),
 }
 
+/// Represents errors that can occur while parsing a tab file.
 #[derive(Debug, Error)]
 pub enum TabError {
     #[error("Failed to use tab due to IO error: {0}")]
@@ -65,6 +81,8 @@ pub enum TabError {
     MissingBinary(String),
 }
 
+/// Represents errors that can occur while parsing Tock OS data or otherwise
+/// coming from a misconfigured of Tock OS.
 #[derive(Debug, Error)]
 pub enum TockError {
     #[error("Bootloader returned an invalid header: {0} {1}")]
@@ -83,6 +101,7 @@ pub enum TockError {
     MissingAttribute(String),
 }
 
+/// Represents errors that can occur while parsing attributes.
 #[derive(Debug, Error)]
 pub enum AttributeParseError {
     #[error("Expected attribute to be a valid number. Inner: {0}")]
@@ -92,6 +111,8 @@ pub enum AttributeParseError {
     InvalidString(#[from] std::string::FromUtf8Error),
 }
 
+/// Represents internal violations of assumptions, or inconsistent state. It
+/// usually represents something that the user of this library did wrong.
 #[derive(Debug, Error)]
 pub enum InternalError {
     #[error("Operation failed due to board not being open.")]
