@@ -23,6 +23,13 @@ you the most flexibility:
 
 ## Install Dev Prerequisites
 
+### All distrubitions
+
+For all distributions, you must install [tauri
+prerequisites](https://tauri.app/start/prerequisites/) if you want to work on
+`tock-ui`, or to have rust-analyzer work out of the box. You can go without
+installing these if you configure rust-analyzer to ignore the `tock-ui` project.
+
 ### Linux
 
 ```bash
