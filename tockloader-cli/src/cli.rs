@@ -114,7 +114,8 @@ fn get_serial_args() -> Vec<clap::Arg> {
         arg!(-p --port <PORT> "The serial port or device name to use"),
         // Default of SerialTargetInfo: 115200
         arg!(--"baud-rate" <RATE> "If using serial, set the target baud rate")
-            .value_parser(value_parser!(u32)),
+            .value_parser(value_parser!(u32))
+            .default_value("115200"),
         // TODO: add more serial arguments to match with SerialTargetInfo
     ]
     .into_iter()

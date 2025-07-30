@@ -1,11 +1,13 @@
 use core::fmt;
+use std::convert::From;
+use std::io;
 
 #[derive(Debug)]
 pub enum TockloaderError {
     TokioSeriallError(tokio_serial::Error),
     NoPortAvailable,
     CLIError(CLIError),
-    IOError(std::io::Error),
+    IOError(io::Error),
     JoinError(tokio::task::JoinError),
 }
 
@@ -47,8 +49,8 @@ impl fmt::Display for CLIError {
 }
 
 impl From<std::io::Error> for TockloaderError {
-    fn from(value: std::io::Error) -> Self {
-        Self::IOError(value)
+    fn from(err: std::io::Error) -> TockloaderError {
+        TockloaderError::IOError(err)
     }
 }
 

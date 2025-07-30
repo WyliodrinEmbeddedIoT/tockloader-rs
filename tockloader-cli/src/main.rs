@@ -139,10 +139,8 @@ async fn main() -> Result<()> {
                 .unwrap_or("legacy");
             match protocol {
                 "legacy" => {
-                    // TODO
-                    process_console::legacy::run(&sub_matches)
-                        .await
-                        .unwrap();
+                    // start in legacy mode
+                    process_console::legacy::run().await;
                 }
                 "pconsole" => {
                     // start in pconsole mode
