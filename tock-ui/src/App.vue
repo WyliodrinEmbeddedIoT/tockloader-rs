@@ -1,4 +1,3 @@
-<!-- src/App.vue -->
 <template>
   <div id="app" class="device-list-container">
     <h1 class="main-title">Connected Devices</h1>
@@ -18,6 +17,17 @@
             <strong>Vendor ID:</strong> {{ probe.vendor_id }}<br>
             <strong>Product ID:</strong> {{ probe.product_id }}<br>
             <strong>Serial Number:</strong> {{ probe.serial_number || 'N/A' }}
+
+            <div v-if="probe.customChip || probe.customCore !== undefined" class="custom-settings-display">
+              <strong>Custom Chip:</strong> {{ probe.customChip || 'N/A' }}<br>
+              <strong>Custom Core:</strong> {{ probe.customCore !== undefined ? probe.customCore : 'N/A' }}
+            </div>
+
+            <div class="customize-button-wrapper">
+              <button @click="openCustomizationModal(probe)" class="customize-button">
+                Customize Settings
+              </button>
+            </div>
           </li>
         </ul>
         <p v-else class="no-devices-message">No debug probes found.</p>
@@ -25,7 +35,6 @@
 
       <section class="device-section">
         <h2 class="section-title">Serial Ports:</h2>
-        <!-- New toggle for /dev/ttySx ports -->
         <div class="toggle-all-tty-container">
           <label for="toggle-tty-ports" class="toggle-label">
             <input
@@ -52,10 +61,124 @@
             <strong>Manufacturer:</strong> {{ port.manufacturer || 'N/A' }}<br>
             <strong>Product:</strong> {{ port.product || 'N/A' }}<br>
             <strong>Serial Number:</strong> {{ port.serial_number || 'N/A' }}
+
+            <div v-if="port.customSettings" class="custom-settings-display">
+              <strong>Custom Baud Rate:</strong> {{ port.customSettings.baudRate || 'N/A' }}<br>
+              <strong>Custom Parity:</strong> {{ port.customSettings.parity || 'N/A' }}<br>
+            
+            </div>
+            <div class="customize-button-wrapper">
+              <button @click="openSerialCustomizationModal(port)" class="customize-button">
+                Customize Settings
+              </button>
+            </div>
           </li>
         </ul>
         <p v-else class="no-devices-message">No serial ports found.</p>
       </section>
+    </div>
+    <div v-if="showCustomizationModal" class="modal-overlay" @click.self="closeCustomizationModal">
+      <div class="modal-content">
+        <h3 class="modal-title">Customize Probe Settings</h3>
+        <p class="modal-description">For Probe: <strong>{{ selectedProbe?.identifier }}</strong></p>
+
+        <div class="form-group">
+          <label for="custom-chip">Chip:</label>
+          <input type="text" id="custom-chip" v-model="tempCustomChip" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="custom-core">Core:</label>
+          <input type="number" id="custom-core" v-model.number="tempCustomCore" class="form-input" />
+        </div>
+
+        <div v-if="connectionStatus" :class="['connection-status', connectionStatus.type]">
+          {{ connectionStatus.message }}
+          <div v-if="connectionStatus.type === 'success' && connectionStatus.data">
+            <h4>Connected to Probe</h4>
+            <ul>
+              <li v-for="(region, index) in connectionStatus.data.memory_map_summary" :key="index">
+                {{ region }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button @click="connectToProbe" class="connect-button" :disabled="connecting">
+            <span v-if="connecting">Connecting...</span>
+            <span v-else>Connect</span>
+          </button>
+          <button @click="saveCustomSettings" class="save-button">Save Settings</button>
+          <button @click="closeCustomizationModal" class="cancel-button">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showSerialCustomizationModal" class="modal-overlay" @click.self="closeSerialCustomizationModal">
+      <div class="modal-content">
+        <h3 class="modal-title">Customize Serial Port Settings</h3>
+        <p class="modal-description">For Port: <strong>{{ selectedSerialPortForConfig?.port_name }}</strong></p>
+
+        <div class="form-group">
+          <label for="serial-baud-rate">Baud Rate:</label>
+          <input type="number" id="serial-baud-rate" v-model.number="tempBaudRate" class="form-input" />
+        </div>
+
+        <div class="form-group">
+          <label for="serial-parity">Parity:</label>
+          <select id="serial-parity" v-model="tempParity" class="form-input">
+            <option value="None">None</option>
+            <option value="Odd">Odd</option>
+            <option value="Even">Even</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="serial-stop-bits">Stop Bits:</label>
+          <select id="serial-stop-bits" v-model="tempStopBits" class="form-input">
+            <option value="One">One</option>
+            <option value="Two">Two</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="serial-flow-control">Flow Control:</label>
+          <select id="serial-flow-control" v-model="tempFlowControl" class="form-input">
+            <option value="None">None</option>
+            <option value="Software">Software</option>
+            <option value="Hardware">Hardware</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="serial-timeout-ms">Timeout (ms):</label>
+          <input type="number" id="serial-timeout-ms" v-model.number="tempTimeoutMs" class="form-input" />
+        </div>
+
+        <div class="form-group flex items-center">
+          <input type="checkbox" id="serial-rts" v-model="tempRequestToSend" class="mr-2" />
+          <label for="serial-rts">Request To Send (RTS)</label>
+        </div>
+
+        <div class="form-group flex items-center">
+          <input type="checkbox" id="serial-dtr" v-model="tempDataTerminalReady" class="mr-2" />
+          <label for="serial-dtr">Data Terminal Ready (DTR)</label>
+        </div>
+
+        <div v-if="serialConnectionStatus" :class="['connection-status', serialConnectionStatus.type]">
+          {{ serialConnectionStatus.message }}
+        </div>
+
+        <div class="modal-actions">
+          <button @click="connectToSerialWithCustomSettings" class="connect-button" :disabled="connectingSerial">
+            <span v-if="connectingSerial">Connecting...</span>
+            <span v-else>Connect</span>
+          </button>
+          <button @click="saveSerialCustomSettings" class="save-button">Save Settings</button>
+          <button @click="closeSerialCustomizationModal" class="cancel-button">Cancel</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -63,13 +186,23 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
+interface SerialCustomSettings {
+  baudRate: number;
+  parity: string;
+  stopBits: string;
+  flowControl: string;
+  timeoutMs: number;
+  requestToSend: boolean;
+  dataTerminalReady: boolean;
+}
 
-// Define TypeScript interfaces for the data received from Rust
 interface DebugProbeSummary {
   identifier: string;
   vendor_id: number;
   product_id: number;
   serial_number?: string;
+  customChip?: string;
+  customCore?: number;
 }
 
 interface SerialPortSummary {
@@ -79,6 +212,7 @@ interface SerialPortSummary {
   manufacturer?: string;
   product?: string;
   serial_number?: string;
+  customSettings?: SerialCustomSettings; 
 }
 
 interface ConnectedDevices {
@@ -86,23 +220,72 @@ interface ConnectedDevices {
   serial_ports: SerialPortSummary[];
 }
 
+interface ConnectedProbeInfo {
+  message: string;
+  target_name: string;
+  target_architecture: string;
+  memory_map_summary: string[];
+}
+
 export default defineComponent({
   name: 'App',
   setup() {
-    // Reactive references for state management
     const devices = ref<ConnectedDevices>({ debug_probes: [], serial_ports: [] });
     const loading = ref<boolean>(false);
     const error = ref<string | null>(null);
-    // New reactive state for hiding /dev/ttySx ports
-    const hideTtySPorts = ref<boolean>(false); // Default to showing all ports
+    const hideTtySPorts = ref<boolean>(false);
 
-    // Function to call the Rust backend
+    const showCustomizationModal = ref<boolean>(false);
+    const selectedProbe = ref<DebugProbeSummary | null>(null);
+    const tempCustomChip = ref<string>('');
+    const tempCustomCore = ref<number | undefined>(undefined);
+    const connecting = ref<boolean>(false);
+    const connectionStatus = ref<{ message: string; type: 'success' | 'error'; data?: ConnectedProbeInfo } | null>(null);
+
+    const showSerialCustomizationModal = ref<boolean>(false);
+    const selectedSerialPortForConfig = ref<SerialPortSummary | null>(null);
+    const tempBaudRate = ref<number>(115200);
+    const tempParity = ref<string>('None');
+    const tempStopBits = ref<string>('One');
+    const tempFlowControl = ref<string>('None');
+    const tempTimeoutMs = ref<number>(500);
+    const tempRequestToSend = ref<boolean>(false);
+    const tempDataTerminalReady = ref<boolean>(false);
+    const connectingSerial = ref<boolean>(false);
+    const serialConnectionStatus = ref<{ message: string; type: 'success' | 'error' } | null>(null);
+   
+
     const getAllConnectedDevices = async () => {
       loading.value = true;
       error.value = null;
       try {
         const result = await invoke<ConnectedDevices>('list_all_devices');
-        devices.value = result;
+        const updatedProbes = result.debug_probes.map((probe: DebugProbeSummary) => {
+          const existingProbe = devices.value.debug_probes.find(p => p.identifier === probe.identifier);
+          return {
+            ...probe,
+            customChip: existingProbe?.customChip,
+            customCore: existingProbe?.customCore,
+          };
+        });
+
+        const updatedSerialPorts = result.serial_ports.map((port: SerialPortSummary) => {
+            const existingPort = devices.value.serial_ports.find(p => p.port_name === port.port_name);
+            return {
+                ...port,
+                customSettings: existingPort?.customSettings || { 
+                    baudRate: 115200,
+                    parity: 'None',
+                    stopBits: 'One',
+                    flowControl: 'None',
+                    timeoutMs: 500,
+                    requestToSend: false,
+                    dataTerminalReady: false,
+                }
+            };
+        });
+
+        devices.value = { ...result, debug_probes: updatedProbes, serial_ports: updatedSerialPorts }; 
       } catch (err: any) {
         console.error('Error getting connected devices:', err);
         error.value = err.toString();
@@ -111,18 +294,169 @@ export default defineComponent({
       }
     };
 
-    // Call the function when the component is mounted
+    const openCustomizationModal = (probe: DebugProbeSummary) => {
+      selectedProbe.value = probe;
+      tempCustomChip.value = probe.customChip || '';
+      tempCustomCore.value = probe.customCore;
+      connectionStatus.value = null;
+      showCustomizationModal.value = true;
+    };
+
+    const closeCustomizationModal = () => {
+      showCustomizationModal.value = false;
+      selectedProbe.value = null;
+      tempCustomChip.value = '';
+      tempCustomCore.value = undefined;
+      connectionStatus.value = null;
+    };
+
+    const saveCustomSettings = () => {
+      if (selectedProbe.value) {
+        const index = devices.value.debug_probes.findIndex(p => p.identifier === selectedProbe.value?.identifier);
+        if (index !== -1) {
+          devices.value.debug_probes[index].customChip = tempCustomChip.value;
+          devices.value.debug_probes[index].customCore = tempCustomCore.value !== null && tempCustomCore.value !== undefined && !isNaN(tempCustomCore.value)
+            ? tempCustomCore.value
+            : undefined;
+        }
+      }
+      connectionStatus.value = { message: 'Settings saved locally!', type: 'success' };
+    };
+
+    const connectToProbe = async () => {
+      if (!selectedProbe.value || !tempCustomChip.value || tempCustomCore.value === undefined || isNaN(tempCustomCore.value)) {
+        connectionStatus.value = { message: 'Please provide a valid Chip and Core.', type: 'error' };
+        return;
+      }
+
+      connecting.value = true;
+      connectionStatus.value = null;
+      try {
+        const result = await invoke<ConnectedProbeInfo>('connect_to_probe', {
+          probeIdentifier: selectedProbe.value.identifier,
+          chip: tempCustomChip.value,
+          core: tempCustomCore.value,
+        });
+        connectionStatus.value = { message: result.message, type: 'success', data: result };
+      } catch (err: any) {
+        console.error('Connection error:', err);
+        connectionStatus.value = { message: err.toString(), type: 'error' };
+      } finally {
+        connecting.value = false;
+      }
+    };
+
+
+    const openSerialCustomizationModal = (port: SerialPortSummary) => {
+      selectedSerialPortForConfig.value = port;
+      const currentSettings = port.customSettings || {
+        baudRate: 115200,
+        parity: 'None',
+        stopBits: 'One',
+        flowControl: 'None',
+        timeoutMs: 500,
+        requestToSend: false,
+        dataTerminalReady: false,
+      };
+      tempBaudRate.value = currentSettings.baudRate;
+      tempParity.value = currentSettings.parity;
+      tempStopBits.value = currentSettings.stopBits;
+      tempFlowControl.value = currentSettings.flowControl;
+      tempTimeoutMs.value = currentSettings.timeoutMs;
+      tempRequestToSend.value = currentSettings.requestToSend;
+      tempDataTerminalReady.value = currentSettings.dataTerminalReady;
+
+      serialConnectionStatus.value = null; 
+      showSerialCustomizationModal.value = true;
+    };
+
+    const closeSerialCustomizationModal = () => {
+      showSerialCustomizationModal.value = false;
+      selectedSerialPortForConfig.value = null;
+      serialConnectionStatus.value = null;
+    };
+
+    const saveSerialCustomSettings = () => {
+      if (selectedSerialPortForConfig.value) {
+        const index = devices.value.serial_ports.findIndex(p => p.port_name === selectedSerialPortForConfig.value?.port_name);
+        if (index !== -1) {
+          devices.value.serial_ports[index].customSettings = {
+            baudRate: tempBaudRate.value,
+            parity: tempParity.value,
+            stopBits: tempStopBits.value,
+            flowControl: tempFlowControl.value,
+            timeoutMs: tempTimeoutMs.value,
+            requestToSend: tempRequestToSend.value,
+            dataTerminalReady: tempDataTerminalReady.value,
+          };
+        }
+      }
+      serialConnectionStatus.value = { message: 'Settings saved locally!', type: 'success' };
+    };
+
+    const connectToSerialWithCustomSettings = async () => {
+      if (!selectedSerialPortForConfig.value) {
+        serialConnectionStatus.value = { message: 'No serial port selected.', type: 'error' };
+        return;
+      }
+
+      connectingSerial.value = true;
+      serialConnectionStatus.value = null;
+      try {
+        const result = await invoke<string>('connect_to_serial', {
+          portName: selectedSerialPortForConfig.value.port_name,
+          baudRate: tempBaudRate.value,
+          parityStr: tempParity.value,
+          stopBitsStr: tempStopBits.value,
+          flowControlStr: tempFlowControl.value,
+          timeoutMs: tempTimeoutMs.value,
+          requestToSend: tempRequestToSend.value,
+          dataTerminalReady: tempDataTerminalReady.value,
+        });
+        serialConnectionStatus.value = { message: result, type: 'success' };
+      } catch (err: any) {
+        console.error('Serial connection error:', err);
+        serialConnectionStatus.value = { message: err.toString(), type: 'error' };
+      } finally {
+        connectingSerial.value = false;
+      }
+    };
+
     onMounted(() => {
       getAllConnectedDevices();
     });
 
-    // Return reactive data and methods to the template
     return {
       devices,
       loading,
       error,
-      hideTtySPorts, // Expose the new state
+      hideTtySPorts,
+      showCustomizationModal,
+      selectedProbe,
+      tempCustomChip,
+      tempCustomCore,
+      connecting,
+      connectionStatus,
       getAllConnectedDevices,
+      openCustomizationModal,
+      closeCustomizationModal,
+      saveCustomSettings,
+      connectToProbe,
+      showSerialCustomizationModal,
+      selectedSerialPortForConfig,
+      tempBaudRate,
+      tempParity,
+      tempStopBits,
+      tempFlowControl,
+      tempTimeoutMs,
+      tempRequestToSend,
+      tempDataTerminalReady,
+      connectingSerial,
+      serialConnectionStatus,
+      openSerialCustomizationModal,
+      closeSerialCustomizationModal,
+      saveSerialCustomSettings,
+      connectToSerialWithCustomSettings
     };
   },
 });
@@ -137,9 +471,8 @@ body {
   color: #333;
 }
 
-/* Container for the entire device list component */
 #app.device-list-container {
-  max-width: 1200px;
+  max-width: 1200px; 
   margin: 40px auto;
   padding: 30px;
   background-color: #ffffff;
@@ -200,15 +533,15 @@ body {
 
 .device-sections {
   display: flex;
-  flex-wrap: wrap; /* Allows sections to wrap on smaller screens */
+  flex-wrap: wrap; 
   gap: 25px;
   margin-top: 30px;
   justify-content: center;
 }
 
 .device-section {
-  flex: 1; /* Allows sections to grow and shrink */
-  min-width: 300px; /* Minimum width before wrapping */
+  flex: 1; 
+  min-width: 300px; 
   background-color: #fefefe;
   border: 1px solid #e0e0e0;
   border-radius: 10px;
@@ -241,7 +574,7 @@ body {
   line-height: 1.6;
   font-size: 0.95em;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  position: relative; /* For positioning the toggle */
+  position: relative; 
 }
 
 .device-item:hover {
@@ -259,15 +592,45 @@ body {
   padding: 10px;
 }
 
+.custom-settings-display {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #ddd;
+  font-size: 0.85em;
+  color: #666;
+  text-align: left; 
+}
+
+.customize-button-wrapper {
+  text-align: center; 
+  margin-top: 15px; 
+}
+
+.customize-button {
+  padding: 10px 20px; 
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1em; 
+  transition: background-color 0.3s ease;
+  display: inline-block; 
+}
+
+.customize-button:hover {
+  background-color: #218838;
+}
+
 .toggle-container {
   display: flex;
   align-items: center;
   margin-top: 10px;
   gap: 10px;
-  justify-content: flex-end; 
+  justify-content: flex-end;
 }
 
-.toggle-all-tty-container { 
+.toggle-all-tty-container {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -299,7 +662,7 @@ body {
   bottom: 0;
   background-color: #ccc;
   transition: .4s;
-  border-radius: 24px; 
+  border-radius: 24px;
 }
 
 .toggle-slider:before {
@@ -315,7 +678,7 @@ body {
 }
 
 .toggle-checkbox:checked + .toggle-slider {
-  background-color: #4CAF50; 
+  background-color: #4CAF50;
 }
 
 .toggle-checkbox:focus + .toggle-slider {
@@ -332,6 +695,138 @@ body {
   font-weight: 500;
 }
 
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #ffffff;
+  padding: 30px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 450px;
+  text-align: left;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.modal-title {
+  color: #2c3e50;
+  font-size: 1.8em;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 10px;
+}
+
+.modal-description {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 0.95em;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #34495e;
+}
+
+.form-input {
+  width: calc(100% - 20px);
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1em;
+  box-sizing: border-box; 
+}
+
+.modal-actions {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.save-button, .cancel-button, .connect-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1em;
+  transition: background-color 0.3s ease;
+}
+
+.save-button {
+  background-color: #007bff;
+  color: white;
+}
+
+.save-button:hover {
+  background-color: #0056b3;
+}
+
+.cancel-button {
+  background-color: #6c757d;
+  color: white;
+}
+
+.cancel-button:hover {
+  background-color: #5a6268;
+}
+
+.connect-button {
+  background-color: #4a69bd;
+  color: white;
+}
+
+.connect-button:hover:not(:disabled) {
+  background-color: #3a5191;
+}
+
+.connect-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.connection-status {
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9em;
+  font-weight: 500;
+  text-align: center;
+}
+
+.connection-status.success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.connection-status.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 @media (max-width: 768px) {
   #app.device-list-container {
@@ -339,11 +834,11 @@ body {
     padding: 20px;
   }
   .device-sections {
-    flex-direction: column; /* Stack sections vertically on small screens */
+    flex-direction: column; 
     gap: 20px;
   }
   .device-section {
-    min-width: unset; /* Remove min-width to allow full flexibility */
+    min-width: unset;
     width: 100%;
   }
   .main-title {
@@ -355,6 +850,9 @@ body {
   .refresh-button {
     font-size: 1em;
     padding: 10px 20px;
+  }
+  .modal-content {
+    padding: 20px;
   }
 }
 </style>
