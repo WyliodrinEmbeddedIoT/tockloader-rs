@@ -1,52 +1,36 @@
-// puse crate::legacy::errors::TockLoaderError;
 pub mod errors;
 
+use crate::legacy::errors::TockloaderError;
 use bytes::{Buf, BufMut, BytesMut};
-use clap::{Arg, Command};
 use console::Term;
 use futures::stream::{SplitSink, SplitStream};
-use futures::{select, SinkExt, StreamExt};
-use inquire::Text;
-use ratatui::text::Line;
-use tokio::task::JoinHandle;
-// use tokio_stream::StreamExt;
-use crossterm::{
-    cursor::{MoveTo, MoveToColumn, MoveUp, RestorePosition, SavePosition},
-    terminal::{Clear, ClearType},
-    ExecutableCommand,
-};
-// use std::io::{stdout, Write};
-use tokio::sync::{mpsc, watch};
-
-use crate::legacy::errors::TockloaderError;
-use std::io::{self, stdin, stdout, Write};
-use std::ptr::write_volatile;
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use futures::{SinkExt, StreamExt};
+use std::io::{self, Write};
 use tokio::signal;
-use tokio::time::timeout;
 use tokio_serial::{SerialPortBuilderExt, SerialStream};
-use tokio_util::codec::LinesCodec;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
-// pub mod errors;
 #[derive(Debug)]
 struct TerminalCodec;
 
 pub async fn run() {
     println!("Connecting to board... (press Ctrl+C to stop)");
 
-    let stream = tokio_serial::new("/dev/ttyACM0", 115_200)
-        .open_native_async()
-        .unwrap();
+    let stream = tokio_serial::new("/dev/ttyACM0", 115_200).open_native_async();
 
-    let (writer, reader) = Framed::new(stream, TerminalCodec).split();
+    match stream {
+        Ok(stream) => {
+            let (writer, reader) = Framed::new(stream, TerminalCodec).split();
 
-    let reader_handle = tokio::spawn(listen_serial(reader));
-    let writer_handle = tokio::spawn(write_serial(writer));
+            let reader_handle = tokio::spawn(listen_serial(reader));
+            let writer_handle = tokio::spawn(write_serial(writer));
 
-    let _ = tokio::join!(reader_handle, writer_handle);
+            let _ = tokio::join!(reader_handle, writer_handle);
+        }
+        Err(e) => {
+            println!("{:?}", e);
+        }
+    }
 }
 
 async fn listen_serial(
@@ -109,9 +93,7 @@ async fn write_serial(
     };
 
     tokio::select! {
-        _ = ctrl_c => {
-            println!("Writer interrupted.");
-        }
+        _ = ctrl_c => {}
         res = write_task => {
             res?;
         }
