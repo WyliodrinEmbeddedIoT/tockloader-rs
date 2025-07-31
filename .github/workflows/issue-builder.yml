@@ -126,7 +126,6 @@ jobs:
                 echo "New issue creation"
                 new_issue_url=$(gh issue create \
                   --title "$TITLE" \
-                  --assignee "$ASSIGNEES" \
                   --label "$LABELS" \
                   --body "$BODY"$'\n'"$COMMIT_LIST")
                 if [[ $PINNED == true ]]; then
@@ -173,7 +172,6 @@ jobs:
           UPSTREAM: "tock/tock"
           DOWNSTREAM: "WyliodrinEmbeddedIoT/tockloader-rs"
           TITLE: Bring updates from 'tock-tbf' to 'tbf-parser'
-          ASSIGNEES: unassigned
           LABELS: D3-TBF PARSER,P1-CRITICAL,EXCLUSIVE LABEL
           BODY: |
             Please review the commits in order of oldest to newest (top to bottom). Once you have implemented the corresponding updates, copy-paste the sha of the commit you last covered in ['.lastcommsha'](https://github.com/WyliodrinEmbeddedIoT/tockloader-rs/tree/main/.github/.lastcommsha). Make sure to label any PRs addressing the commits in this list with 'EXCLUSIVE LABEL'. The following commits need to be accounted for:
