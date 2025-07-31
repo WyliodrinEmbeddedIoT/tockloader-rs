@@ -28,7 +28,7 @@ pub async fn run() {
             let _ = tokio::join!(reader_handle, writer_handle);
         }
         Err(e) => {
-            println!("{:?}", e);
+            println!("{e:?}");
         }
     }
 }
@@ -42,19 +42,15 @@ async fn listen_serial(
             .expect("Failed to install Ctrl+C handler");
     };
     let read_task = async {
-        loop {
-            if let Some(line) = reader.next().await {
-                match line {
-                    Ok(data) => {
-                        print!("{data}");
-                        io::stdout().flush().unwrap();
-                    }
-                    Err(e) => {
-                        println!("Decoding error: {}", e);
-                    }
+        while let Some(line) = reader.next().await {
+            match line {
+                Ok(data) => {
+                    print!("{data}");
+                    io::stdout().flush().unwrap();
                 }
-            } else {
-                break;
+                Err(e) => {
+                    println!("Decoding error: {e}");
+                }
             }
         }
 
