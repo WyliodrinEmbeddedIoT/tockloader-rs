@@ -3,7 +3,7 @@
 # Copyright OXIDOS AUTOMOTIVE 2024.
 
 [package]
-name = "process-console"
+name = "tock-process-console"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,20 +15,11 @@ crossterm = { version = "0.27.0", features = ["event-stream"] }
 circular-queue = "0.2.6"
 tokio = { version = "1.32.0", features = ["full"] }
 anyhow = "1.0.75"
-tokio-serial = {version = "5.4.4", features = ["libudev"]}
+tokio-serial = { version = "5.4.4", features = ["libudev"] }
 tokio-stream = { version = "0.1.14" }
 tui-term = "0.1.6"
 bytes = "1.5.0"
-vt100 = "0.15.2"
-queues = "1.0.2"
-itertools = "0.12.1"
 ratatui = "0.28.0"
-probe-rs = "0.24.0"
-clap = { version = "4.1.1", features = ["cargo"] }
-async-trait = "0.1.73"
-enum_dispatch = "0.3.12"
-console = { git = "https://github.com/george-cosma/console.git", branch = "unblock" }
 futures = "0.3.31"
 tokio-util = { version = "0.7.8", features = ["full"] }
-shell-words = "1.1.0"
-inquire = "0.7.5"
+console = "0.16.0"

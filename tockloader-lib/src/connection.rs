@@ -101,7 +101,7 @@ impl Connection for ProbeRSConnection {
 }
 
 pub struct SerialConnection {
-    pub(crate) stream: Option<SerialStream>,
+    pub stream: Option<SerialStream>,
     /// Used both to open new connections but also used during the session to
     /// provide information about the target
     pub(crate) target_info: SerialTargetInfo,

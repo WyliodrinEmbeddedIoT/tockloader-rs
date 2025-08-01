@@ -1,35 +1,25 @@
-pub mod errors;
-
-use crate::legacy::errors::TockloaderError;
+use anyhow::Error;
 use bytes::{Buf, BufMut, BytesMut};
 use console::Term;
 use futures::stream::{SplitSink, SplitStream};
 use futures::{SinkExt, StreamExt};
 use std::io::{self, Write};
 use tokio::signal;
-use tokio_serial::{SerialPortBuilderExt, SerialStream};
+use tokio_serial::SerialStream;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 
 #[derive(Debug)]
 struct TerminalCodec;
 
-pub async fn run() {
+pub async fn run(stream: SerialStream) {
     println!("Connecting to board... (press Ctrl+C to stop)");
 
-    let stream = tokio_serial::new("/dev/ttyACM0", 115_200).open_native_async();
-
-    match stream {
-        Ok(stream) => {
-            let (writer, reader) = Framed::new(stream, TerminalCodec).split();
-
-            let reader_handle = tokio::spawn(listen_serial(reader));
-            let writer_handle = tokio::spawn(write_serial(writer));
-
-            let _ = tokio::join!(reader_handle, writer_handle);
-        }
-        Err(e) => {
-            println!("{e:?}");
-        }
+    let (writer, reader) = Framed::new(stream, TerminalCodec).split();
+    let reader_handle = tokio::spawn(listen_serial(reader));
+    let writer_handle = tokio::spawn(write_serial(writer));
+    tokio::select! {
+        _ = reader_handle => {}
+        _ = writer_handle => {}
     }
 }
 
@@ -43,15 +33,8 @@ async fn listen_serial(
     };
     let read_task = async {
         while let Some(line) = reader.next().await {
-            match line {
-                Ok(data) => {
-                    print!("{data}");
-                    io::stdout().flush().unwrap();
-                }
-                Err(e) => {
-                    println!("Decoding error: {e}");
-                }
-            }
+            print!("{}", line.unwrap());
+            io::stdout().flush().unwrap();
         }
 
         Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
@@ -59,7 +42,6 @@ async fn listen_serial(
 
     tokio::select! {
         _ = ctrl_c => {
-            println!("\nInterrupted by user.");
         }
         res = read_task => {
             res?;
@@ -98,7 +80,7 @@ async fn write_serial(
     Ok(())
 }
 
-async fn get_key() -> Result<Option<String>, TockloaderError> {
+async fn get_key() -> Result<Option<String>, Error> {
     let console_result = tokio::task::spawn_blocking(move || Term::stdout().read_key()).await?;
 
     let key = console_result?;
@@ -130,7 +112,7 @@ async fn get_key() -> Result<Option<String>, TockloaderError> {
 
 impl Decoder for TerminalCodec {
     type Item = String;
-    type Error = TockloaderError;
+    type Error = Error;
 
     fn decode(&mut self, source: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if source.is_empty() {
@@ -171,7 +153,7 @@ impl Decoder for TerminalCodec {
 }
 
 impl Encoder<String> for TerminalCodec {
-    type Error = TockloaderError;
+    type Error = Error;
 
     fn encode(&mut self, item: String, dst: &mut BytesMut) -> Result<(), Self::Error> {
         dst.put(item.as_bytes());

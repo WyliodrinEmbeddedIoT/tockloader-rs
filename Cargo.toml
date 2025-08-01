@@ -4,11 +4,11 @@
 
 [workspace]
 
-resolver= "2"
+resolver = "2"
 
 members = [
     "tockloader-cli",
-    "process-console", 
+    "tock-process-console",
     "tbf-parser",
     "tockloader-lib",
 ]

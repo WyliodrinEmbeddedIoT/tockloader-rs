@@ -68,9 +68,7 @@ fn get_channel_args() -> Vec<clap::Arg> {
     vec![
         arg!(--protocol <PROTOCOL> "Choose between legacy and pconsole protocol")
             .default_value("legacy")
-            .hide_default_value(true)
-            .value_parser(["legacy", "pconsole"])
-            .hide_possible_values(true),
+            .value_parser(["legacy", "pconsole"]),
         arg!(--serial "Use the serial bootloader to flash")
             .action(clap::ArgAction::SetTrue)
             .conflicts_with_all(probe_args_ids.clone().collect::<Vec<_>>()),
@@ -114,8 +112,7 @@ fn get_serial_args() -> Vec<clap::Arg> {
         arg!(-p --port <PORT> "The serial port or device name to use"),
         // Default of SerialTargetInfo: 115200
         arg!(--"baud-rate" <RATE> "If using serial, set the target baud rate")
-            .value_parser(value_parser!(u32))
-            .default_value("115200"),
+            .value_parser(value_parser!(u32)),
         // TODO: add more serial arguments to match with SerialTargetInfo
     ]
     .into_iter()
