@@ -6,8 +6,8 @@ use super::components::apps_list::{self, AppsList};
 use super::components::terminal_box::{RenderProps, TerminalBox};
 use super::section::SectionActivation;
 
-use crate::state_store::{Action, AppData, State};
-use crate::ui_management::components::{Component, ComponentRender};
+use crate::pconsole::state_store::{Action, AppData, State};
+use crate::pconsole::ui_management::components::{Component, ComponentRender};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::Color;

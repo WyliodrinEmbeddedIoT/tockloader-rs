@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tui_term::vt100::Parser;
 
-use crate::board;
+use crate::pconsole::board;
 
 /// AppData hold information about an application that is running on the board
 /// and intercepted by the console application

@@ -72,7 +72,10 @@ fn get_board_settings(user_options: &ArgMatches) -> BoardSettings {
 }
 
 fn using_serial(user_options: &ArgMatches) -> bool {
-    *user_options.get_one::<bool>("serial").unwrap_or(&false)
+    user_options.get_flag("serial")
+        || user_options
+            .get_one::<String>("protocol")
+            .is_some_and(|p| p == "legacy")
 }
 
 fn get_known_board(user_options: &ArgMatches) -> Option<Box<dyn KnownBoard>> {
@@ -133,9 +136,32 @@ async fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("listen", sub_matches)) => {
             cli::validate(&mut cmd, sub_matches);
-            tock_process_console::run()
-                .await
-                .context("Failed to run console.")?;
+            let protocol = sub_matches
+                .get_one::<String>("protocol")
+                .map(String::as_str)
+                .unwrap_or("legacy");
+            match protocol {
+                "legacy" => {
+                    // start in legacy mode
+                    let conn = open_connection(sub_matches).await?;
+                    match conn {
+                        TockloaderConnection::ProbeRS(_) => panic!("Cannot ..."),
+                        TockloaderConnection::Serial(serial_connection) => {
+                            tock_process_console::legacy::run(serial_connection.stream.unwrap())
+                                .await;
+                        }
+                    }
+                }
+                "pconsole" => {
+                    // start in pconsole mode
+                    tock_process_console::pconsole::run()
+                        .await
+                        .context("Failed to run console.")?;
+                }
+                _ => {
+                    panic!("Invalid protocol");
+                }
+            }
         }
         Some(("list", sub_matches)) => {
             cli::validate(&mut cmd, sub_matches);

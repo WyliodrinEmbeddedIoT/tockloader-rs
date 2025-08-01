@@ -3,12 +3,11 @@
 # Copyright OXIDOS AUTOMOTIVE 2024.
 
 [workspace]
-
 resolver= "3"
 
 members = [
     "tockloader-cli",
-    "tock-process-console", 
+    "tock-process-console",
     "tbf-parser",
     "tockloader-lib",
     "tock-ui/src-tauri",

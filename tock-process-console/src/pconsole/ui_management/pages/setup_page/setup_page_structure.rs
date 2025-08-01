@@ -4,8 +4,8 @@
 
 use std::vec;
 
-use crate::state_store::{Action, BoardConnectionStatus, State};
-use crate::ui_management::components::{Component, ComponentRender};
+use crate::pconsole::state_store::{Action, BoardConnectionStatus, State};
+use crate::pconsole::ui_management::components::{Component, ComponentRender};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout};
 use ratatui::prelude::Direction;
