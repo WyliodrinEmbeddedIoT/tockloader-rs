@@ -7,7 +7,7 @@ use probe_rs::{Core, MemoryInterface};
 use tokio_serial::SerialStream;
 
 use crate::bootloader_serial::{issue_command, Command, Response};
-use crate::errors::TockloaderError;
+use crate::errors::{AttributeParseError, TockError, TockloaderError};
 
 use super::decode::{bytes_to_string, decode_attribute};
 
@@ -51,7 +51,7 @@ impl SystemAttributes {
         let address = 0x600;
         let mut buf = [0u8; 64 * 16];
 
-        let _ = board_core.read(address, &mut buf);
+        board_core.read(address, &mut buf)?;
 
         let mut data = buf.chunks(64);
 
@@ -80,10 +80,8 @@ impl SystemAttributes {
                                     .trim_start_matches("0x"),
                                 16,
                             )
-                            .map_err(|_| {
-                                TockloaderError::MisconfiguredBoard(
-                                    "Invalid start address.".to_owned(),
-                                )
+                            .map_err(|e| {
+                                TockError::AttributeParsing(AttributeParseError::InvalidNumber(e))
                             })?,
                         );
                     }
@@ -101,27 +99,21 @@ impl SystemAttributes {
 
         let mut buf = [0u8; 8];
 
-        let _ = board_core.read_8(address, &mut buf);
+        board_core.read_8(address, &mut buf)?;
 
-        let string = String::from_utf8(buf.to_vec()).map_err(|_| {
-            TockloaderError::MisconfiguredBoard(
-                "Data may be corrupted. System attribure is not UTF-8.".to_owned(),
-            )
-        })?;
+        let string = String::from_utf8(buf.to_vec())
+            .map_err(|e| TockError::AttributeParsing(AttributeParseError::InvalidString(e)))?;
 
         let string = string.trim_matches(char::from(0));
 
         result.bootloader_version = Some(string.to_owned());
 
         let mut kernel_attr_binary = [0u8; 100];
-        board_core
-            .read(
-                result.appaddr.ok_or(TockloaderError::MisconfiguredBoard(
-                    "No start address found.".to_owned(),
-                ))? - 100,
-                &mut kernel_attr_binary,
-            )
-            .map_err(TockloaderError::ProbeRsReadError)?;
+        let kernel_attr_addr = result
+            .appaddr
+            .ok_or(TockError::MissingAttribute("appaddr".to_owned()))?
+            - 100;
+        board_core.read(kernel_attr_addr, &mut kernel_attr_binary)?;
 
         let sentinel = bytes_to_string(&kernel_attr_binary[96..100]);
         let kernel_version = LittleEndian::read_uint(&kernel_attr_binary[95..96], 1);
@@ -191,10 +183,8 @@ impl SystemAttributes {
                                     .trim_start_matches("0x"),
                                 16,
                             )
-                            .map_err(|_| {
-                                TockloaderError::MisconfiguredBoard(
-                                    "Invalid start address.".to_owned(),
-                                )
+                            .map_err(|e| {
+                                TockError::AttributeParsing(AttributeParseError::InvalidNumber(e))
                             })?,
                         );
                     }
@@ -217,21 +207,18 @@ impl SystemAttributes {
         let (_, buf) =
             issue_command(port, Command::ReadRange, pkt, true, 8, Response::ReadRange).await?;
 
-        let string = String::from_utf8(buf).map_err(|_| {
-            TockloaderError::MisconfiguredBoard(
-                "Data may be corrupted. System attribure is not UTF-8.".to_owned(),
-            )
-        })?;
+        let string = String::from_utf8(buf)
+            .map_err(|e| TockError::AttributeParsing(AttributeParseError::InvalidString(e)))?;
 
         let string = string.trim_matches(char::from(0));
 
         result.bootloader_version = Some(string.to_owned());
 
-        let mut pkt = ((result.appaddr.ok_or(TockloaderError::MisconfiguredBoard(
-            "No start address found.".to_owned(),
-        ))? - 100) as u32)
-            .to_le_bytes()
-            .to_vec();
+        let kernel_attr_addr = (result
+            .appaddr
+            .ok_or(TockError::MissingAttribute("appaddr".to_owned()))?
+            - 100) as u32;
+        let mut pkt = kernel_attr_addr.to_le_bytes().to_vec();
         let length = (100_u16).to_le_bytes().to_vec();
         for i in length {
             pkt.push(i);

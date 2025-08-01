@@ -18,7 +18,7 @@ use tokio_serial::SerialPortInfo;
 use crate::attributes::app_attributes::AppAttributes;
 use crate::attributes::general_attributes::GeneralAttributes;
 use crate::board_settings::BoardSettings;
-use crate::errors::TockloaderError;
+use crate::errors::*;
 use crate::tabs::tab::Tab;
 
 pub fn list_debug_probes() -> Vec<DebugProbeInfo> {
@@ -26,7 +26,7 @@ pub fn list_debug_probes() -> Vec<DebugProbeInfo> {
 }
 
 pub fn list_serial_ports() -> Result<Vec<SerialPortInfo>, TockloaderError> {
-    tokio_serial::available_ports().map_err(TockloaderError::SerialInitializationError)
+    tokio_serial::available_ports().map_err(|e| TockloaderError::Serial(e.into()))
 }
 
 // TODO(george-cosma): Examine if we need to split these functions into smaller
