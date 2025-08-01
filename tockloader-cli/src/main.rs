@@ -75,7 +75,7 @@ fn using_serial(user_options: &ArgMatches) -> bool {
     user_options.get_flag("serial")
         || user_options
             .get_one::<String>("protocol")
-            .map_or(false, |p| p == "legacy")
+            .is_some_and(|p| p == "legacy")
 }
 
 fn get_known_board(user_options: &ArgMatches) -> Option<Box<dyn KnownBoard>> {
