@@ -15,7 +15,7 @@ const BOLD_YELLOW: &str = "\x1b[1;33m";
 pub async fn print_list(app_details: &[AppAttributes]) {
     for (i, details) in app_details.iter().enumerate() {
         println!("\n{RESET}{BOLD_MAGENTA} ┏━━━━━━━━━━━━━━━━┓");
-        println!("{RESET}{BOLD_RED} ┃ {RESET}{BOLD_GREEN} App_{i} {RESET}{BOLD_RED}┃",);
+        println!("{RESET}{BOLD_RED} ┃ {RESET}{BOLD_GREEN} App_{i:<9} {RESET}{BOLD_RED}┃",);
         println!("{RESET}{BOLD_YELLOW} ┗━━━━━━━━━━━━━━━━┛");
         println!(
             "\n {BOLD_GREEN} Name:             {RESET}{}",
@@ -47,7 +47,7 @@ pub async fn print_list(app_details: &[AppAttributes]) {
 pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut SystemAttributes) {
     for (i, details) in app_details.iter().enumerate() {
         println!("\n{RESET}{BOLD_MAGENTA} ┏━━━━━━━━━━━━━━━━┓");
-        println!("{RESET}{BOLD_RED} ┃ {RESET}{BOLD_GREEN} App_{i} {RESET}{BOLD_RED}┃");
+        println!("{RESET}{BOLD_RED} ┃ {RESET}{BOLD_GREEN} App_{i:<9} {RESET}{BOLD_RED}┃");
         println!("{RESET}{BOLD_YELLOW} ┗━━━━━━━━━━━━━━━━┛");
 
         println!(
