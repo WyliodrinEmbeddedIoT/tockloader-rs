@@ -12,6 +12,8 @@ use tokio_serial::SerialStream;
 use crate::bootloader_serial::{issue_command, Command, Response};
 use crate::errors::TockloaderError;
 
+use log::info;
+
 #[derive(Debug)]
 pub struct AppAttributes {
     pub tbf_header: TbfHeader,
@@ -56,6 +58,8 @@ impl AppAttributes {
                 .read(appaddr, &mut appdata)
                 .map_err(TockloaderError::ProbeRsReadError)?;
 
+            info!("Read board_core");
+
             let tbf_version: u16;
             let header_size: u16;
             let total_size: u32;
@@ -69,8 +73,12 @@ impl AppAttributes {
                     tbf_version = data.0;
                     header_size = data.1;
                     total_size = data.2;
+                    info!("Obtained tbf header");
                 }
-                _ => return Ok(apps_details),
+                _ => {
+                    info!("Buffer is too short!");
+                    return Ok(apps_details);
+                }
             };
 
             let mut header_data = vec![0u8; header_size as usize];
@@ -108,6 +116,7 @@ impl AppAttributes {
                     break;
                 }
             }
+            info!("Obtained header and footer");
 
             let details: AppAttributes = AppAttributes::new(header, footers);
 
@@ -135,7 +144,7 @@ impl AppAttributes {
 
             let (_, appdata) =
                 issue_command(port, Command::ReadRange, pkt, true, 8, Response::ReadRange).await?;
-
+            info!("Issued pkt and obtained appdata");
             let tbf_version: u16;
             let header_size: u16;
             let total_size: u32;
@@ -171,6 +180,7 @@ impl AppAttributes {
 
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockloaderError::ParsingError)?;
+            info!("Obtained header");
             let binary_end_offset = header.get_binary_end();
 
             let mut footers: Vec<TbfFooter> = vec![];
@@ -209,7 +219,7 @@ impl AppAttributes {
                     break;
                 }
             }
-
+            info!("Obtained footer");
             let details: AppAttributes = AppAttributes::new(header, footers);
 
             apps_details.insert(apps_counter, details);
