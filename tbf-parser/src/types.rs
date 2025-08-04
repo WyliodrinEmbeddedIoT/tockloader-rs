@@ -284,7 +284,7 @@ pub enum TbfFooterV2Credentials {
     SHA256(TbfFooterV2SHA<32>),
     SHA384(TbfFooterV2SHA<48>),
     SHA512(TbfFooterV2SHA<64>),
-    EcdsaNistP256(TbfFooterV2Ecdsa<256>),
+    EcdsaNistP256(TbfFooterV2Ecdsa<32>),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -300,10 +300,8 @@ pub struct TbfFooterV2RSA<const L: usize> {
 
 #[derive(Clone, Copy, Debug)]
 pub struct TbfFooterV2Ecdsa<const L: usize> {
-    public_key_x: [u8; 32],
-    public_key_y: [u8; 32],
-    signature_r: [u8; 32],
-    signature_s: [u8; 32],
+    signature_r: [u8; L],
+    signature_s: [u8; L],
 }
 
 impl<const L: usize> TbfFooterV2SHA<L> {
@@ -344,22 +342,16 @@ impl<const L: usize> TbfFooterV2Ecdsa<L> {
         Ok(TbfFooterV2CredentialsType::EcdsaNistP256)
     }
 
-    pub fn get_public_key_x(&self) -> &[u8; 32] {
-        &self.public_key_x
-    }
-
-    pub fn get_public_key_y(&self) -> &[u8; 32] {
-        &self.public_key_y
-    }
-
-    pub fn get_signature_r(&self) -> &[u8; 32] {
+    pub fn get_signature_r(&self) -> &[u8; L] {
         &self.signature_r
     }
 
-    pub fn get_signature_s(&self) -> &[u8; 32] {
+    pub fn get_signature_s(&self) -> &[u8; L] {
         &self.signature_s
     }
 }
+
+// Conversion functions from slices to the various TBF fields.
 
 impl core::convert::TryFrom<&[u8]> for TbfHeaderV2Base {
     type Error = TbfParseError;
@@ -805,16 +797,10 @@ impl core::convert::TryFrom<&[u8]> for TbfFooterV2Credentials {
             }
             TbfFooterV2CredentialsType::EcdsaNistP256 => {
                 Ok(TbfFooterV2Credentials::EcdsaNistP256(TbfFooterV2Ecdsa {
-                    public_key_x: data[0..32]
+                    signature_r: data[0..32]
                         .try_into()
                         .map_err(|_| TbfParseError::InternalError)?,
-                    public_key_y: data[32..64]
-                        .try_into()
-                        .map_err(|_| TbfParseError::InternalError)?,
-                    signature_r: data[64..96]
-                        .try_into()
-                        .map_err(|_| TbfParseError::InternalError)?,
-                    signature_s: data[96..128]
+                    signature_s: data[32..64]
                         .try_into()
                         .map_err(|_| TbfParseError::InternalError)?,
                 }))
