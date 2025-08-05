@@ -21,8 +21,6 @@ use tockloader_lib::{
     list_debug_probes, list_serial_ports, CommandInfo, CommandInstall, CommandList,
 };
 
-use tracing_subscriber::{fmt, EnvFilter};
-
 fn get_serial_target_info(user_options: &ArgMatches) -> SerialTargetInfo {
     let board = get_known_board(user_options);
     if let Some(board) = board {
@@ -135,18 +133,20 @@ async fn main() -> Result<()> {
     let user_level = matches
         .get_one::<String>("log-level")
         .map(String::as_str)
-        .unwrap_or("warn");
-    let filter = EnvFilter::new(format!(
-        "\
-        tockloader=trace,\
+        .unwrap_or("info");
+
+    let filter = format!(
+        "tockloader=trace,\
         tockloader_lib={user_level},\
         probe_rs=warn,\
         nusb=warn,\
         tracing=warn,\
-        tracing_span=warn",
-    ));
+        tracing_span=warn"
+    );
 
-    fmt().with_env_filter(filter).init();
+    std::env::set_var("RUST_LOG", &filter);
+
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     match matches.subcommand() {
         Some(("listen", sub_matches)) => {
