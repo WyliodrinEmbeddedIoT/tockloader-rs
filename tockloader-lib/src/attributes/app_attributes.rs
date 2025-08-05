@@ -14,12 +14,20 @@ use crate::errors::TockloaderError;
 
 use log::info;
 
+/// This structure contains all relevant information about a tock application.
+///
+/// All data is stored either within [TbfHeader]s, or [TbfFooter]s.
+///
+/// See also <https://book.tockos.org/doc/tock_binary_format>
 #[derive(Debug)]
 pub struct AppAttributes {
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
 }
 
+/// This structure represents a footer of a Tock application. Currently, footers
+/// only contain credentials, which are used to verify the integrity of the
+/// application.
 #[derive(Debug)]
 pub struct TbfFooter {
     pub credentials: TbfFooterV2Credentials,
@@ -42,7 +50,19 @@ impl AppAttributes {
         }
     }
 
-    // TODO: Document this function
+    /// Retrieve all application attributes from the device's memory using a
+    /// probe-rs connection.
+    ///
+    /// Applications are layed out in memory sequentially, starting from the
+    /// `appaddr` address. This function will attempt to read all applications
+    /// until it fails to parse.
+    ///
+    /// # Parameters
+    /// - `board_core`: Core access, obtained from a
+    ///   [ProbeRSConnection](crate::connection::ProbeRSConnection)
+    /// - `addr`: The starting address of the first application in memory.
+    ///   Board-specific. See also
+    ///   [BoardSettings](crate::board_settings::BoardSettings).
     pub(crate) fn read_apps_data_probe(
         board_core: &mut Core,
         addr: u64,
@@ -51,6 +71,8 @@ impl AppAttributes {
         let mut apps_counter = 0;
         let mut apps_details: Vec<AppAttributes> = vec![];
 
+        // All applications are stored sequentially in memory, so we read until
+        // we fail to parse.
         loop {
             let mut appdata = vec![0u8; 8];
 
@@ -64,6 +86,11 @@ impl AppAttributes {
             let header_size: u16;
             let total_size: u32;
 
+            // The first 8 bytes of the application data contain the TBF header
+            // lengths and version.
+            //
+            // Note on expect: `read` always fills up the entire buffer, which
+            // was previously declared as 8 bytes.
             match parse_tbf_header_lengths(
                 &appdata
                     .try_into()
@@ -89,6 +116,12 @@ impl AppAttributes {
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockloaderError::ParsingError)?;
 
+            // The end of the application binary marks the beginning of the
+            // footer.
+            //
+            // TODO(george-cosma): This is not always true, `get_binary_end`
+            // does not make sense if the application is just padding. This can
+            // crash the process.
             let binary_end_offset = header.get_binary_end();
 
             let mut footers: Vec<TbfFooter> = vec![];
@@ -96,7 +129,11 @@ impl AppAttributes {
             let mut footer_offset = binary_end_offset;
             let mut footer_number = 0;
 
+            // Try to parse footers until we reach the end of the application.
             loop {
+                // We don't know the size of the current footer, so we read the
+                // remaining bytes in the application (`footer_offset -
+                // binary_end_offset`) , even if we overread.
                 let mut appfooter =
                     vec![0u8; (total_footers_size - (footer_offset - binary_end_offset)) as usize];
 
@@ -110,6 +147,7 @@ impl AppAttributes {
                 footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
 
                 footer_number += 1;
+                // we add 4 because that is the size of TL part of the TLV header (2 bytes type + 2 bytes length)
                 footer_offset += footer_info.1 + 4;
 
                 if footer_offset == total_size {
@@ -126,7 +164,19 @@ impl AppAttributes {
         }
     }
 
-    // TODO: Document this function
+    /// Retrieve all application attributes from the device's memory using a
+    /// serial connection.
+    ///
+    /// Applications are layed out in memory sequentially, starting from the
+    /// `appaddr` address. This function will attempt to read all applications
+    /// until it fails to parse.
+    ///
+    /// # Parameters
+    /// - `port`: Serial access, obtained from a
+    ///   [SerialConnection](crate::connection::SerialConnection)
+    /// - `addr`: The starting address of the first application in memory.
+    ///   Board-specific. See also
+    ///   [BoardSettings](crate::board_settings::BoardSettings).
     pub(crate) async fn read_apps_data_serial(
         port: &mut SerialStream,
         addr: u64,
@@ -135,13 +185,18 @@ impl AppAttributes {
         let mut apps_counter = 0;
         let mut apps_details: Vec<AppAttributes> = vec![];
 
+        // All applications are stored sequentially in memory, so we read until
+        // we fail to parse.
         loop {
+            // The tockloader protocol only supports 32-bit architectures,
+            // though in the future support will be extended to 64-bit.
             let mut pkt = (appaddr as u32).to_le_bytes().to_vec();
             let length = (8_u16).to_le_bytes().to_vec();
             for i in length {
                 pkt.push(i);
             }
 
+            // Read the first 8 bytes, which is the length of a TLV header.
             let (_, appdata) =
                 issue_command(port, Command::ReadRange, pkt, true, 8, Response::ReadRange).await?;
             info!("Issued pkt and obtained appdata");
@@ -149,6 +204,11 @@ impl AppAttributes {
             let header_size: u16;
             let total_size: u32;
 
+            // The first 8 bytes of the application data contain the TBF header
+            // lengths and version.
+            //
+            // Note on expect: `read` always fills up the entire buffer, which
+            // was previously declared as 8 bytes.
             match parse_tbf_header_lengths(
                 &appdata[0..8]
                     .try_into()
@@ -168,6 +228,7 @@ impl AppAttributes {
                 pkt.push(i);
             }
 
+            // Read the rest of the header
             let (_, header_data) = issue_command(
                 port,
                 Command::ReadRange,
@@ -188,7 +249,11 @@ impl AppAttributes {
             let mut footer_offset = binary_end_offset;
             let mut footer_number = 0;
 
+            // Try to parse footers until we reach the end of the application.
             loop {
+                // We don't know the size of the current footer, so we read the
+                // remaining bytes in the application (`footer_offset -
+                // binary_end_offset`) , even if we overread.
                 let mut pkt = (appaddr as u32 + footer_offset).to_le_bytes().to_vec();
                 let length = ((total_footers_size - (footer_offset - binary_end_offset)) as u16)
                     .to_le_bytes()
@@ -197,6 +262,7 @@ impl AppAttributes {
                     pkt.push(i);
                 }
 
+                // Read the next header (and perhaps data beyond it)
                 let (_, appfooter) = issue_command(
                     port,
                     Command::ReadRange,
@@ -213,6 +279,7 @@ impl AppAttributes {
                 footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
 
                 footer_number += 1;
+                // we add 4 because that is the size of TL part of the TLV header (2 bytes type + 2 bytes length)
                 footer_offset += footer_info.1 + 4;
 
                 if footer_offset == total_size {
