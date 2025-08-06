@@ -20,6 +20,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  DEFAULT_FEATURE: true
 
 jobs:
   build:
@@ -28,15 +29,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Install libudev
-      env:
-        DEFAULT_FEATURE: ${{ github.event.inputs.defaultFeature }}
+    - name: Override defaultFeature from input (if workflow_dispatch)
       run: |
-          if [ "$DEFAULT_FEATURE" = "true" ]; then
-            sudo apt-get install -y libudev-dev
-          else
-            echo "Skipping libudev-dev installation."
-          fi
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          echo "DEFAULT_FEATURE=${{ github.event.inputs.defaultFeature }}" >> $GITHUB_ENV
+        fi
+    - name: Install libudev
+      run: |
+        if [ $DEFAULT_FEATURE = "true" ]; then
+          "sudo apt-get install -y  libudev-dev"
+        else
+          "echo Skipped libudef install"
+        fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
@@ -78,14 +82,12 @@ jobs:
         toolchain: stable
         components: clippy
     - name: Install libudev
-      env:
-        DEFAULT_FEATURE: ${{ github.event.inputs.defaultFeature }}
       run: |
-          if [ "$DEFAULT_FEATURE" = "true" ]; then
-            sudo apt-get install -y libudev-dev
-          else
-            echo "Skipping libudev-dev installation."
-          fi
+        if [ $DEFAULT_FEATURE = "true" ]; then
+          "sudo apt-get install -y  libudev-dev"
+        else
+          "echo Skipped libudef install"
+        fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
