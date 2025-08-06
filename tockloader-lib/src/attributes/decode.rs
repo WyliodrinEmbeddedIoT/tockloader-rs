@@ -43,6 +43,7 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     for n in decoder_key {
         key.push(n.expect("Error getting key for attributes."));
     }
+
     key = key.trim_end_matches('\0').to_string();
     let vlen = step[8];
 
@@ -57,6 +58,7 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     for n in decoder_value {
         value.push(n.expect("Error getting key for attributes."));
     }
+
     value = value.trim_end_matches('\0').to_string();
     Some(DecodedAttribute::new(key, value))
 }
