@@ -5,6 +5,14 @@
 name: Rust Build & Test
 
 on:
+  workflow_dispatch:
+    inputs:
+      defaultFeature:
+        description: 'Default feature'     
+        required: true
+        default: 'true'
+      tags:
+        description: 'libudev-dev dependency'  
   push:
   pull_request:
   merge_group:
@@ -20,7 +28,10 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install libudev
-      run:  sudo apt-get install -y  libudev-dev
+      run: |
+        if [ ${{ github.event.inputs.defaultFeature }} == true ]; then
+          "sudo apt-get install -y  libudev-dev"
+        fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
@@ -62,7 +73,10 @@ jobs:
         toolchain: stable
         components: clippy
     - name: Install libudev
-      run:  sudo apt-get install -y  libudev-dev
+      run: |
+        if [ ${{ github.event.inputs.defaultFeature }} == true ]; then
+          "sudo apt-get install -y  libudev-dev"
+        fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
