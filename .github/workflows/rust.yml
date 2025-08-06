@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
     inputs:
       defaultFeature:
+        type: boolean
         description: 'Default feature'     
         required: true
-        default: 'true'
+        default: true
       tags:
         description: 'libudev-dev dependency'  
   push:
