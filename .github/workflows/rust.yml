@@ -37,9 +37,9 @@ jobs:
     - name: Install libudev
       run: |
         if [ $DEFAULT_FEATURE = "true" ]; then
-          "sudo apt-get install -y  libudev-dev"
+          sudo apt-get install -y  libudev-dev
         else
-          "echo Skipped libudef install"
+          echo Skipped libudev install
         fi
     - name: Tauri dependencies
       run: |
@@ -84,9 +84,9 @@ jobs:
     - name: Install libudev
       run: |
         if [ $DEFAULT_FEATURE = "true" ]; then
-          "sudo apt-get install -y  libudev-dev"
+          sudo apt-get install -y  libudev-dev
         else
-          "echo Skipped libudef install"
+          echo Skipped libudev install
         fi
     - name: Tauri dependencies
       run: |
