@@ -29,10 +29,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Install libudev
+      env:
+        DEFAULT_FEATURE: ${{ github.event.inputs.defaultFeature }}
       run: |
-        if [ ${{ github.event.inputs.defaultFeature }} == true ]; then
-          "sudo apt-get install -y  libudev-dev"
-        fi
+          if [ "$DEFAULT_FEATURE" = "true" ]; then
+            sudo apt-get install -y libudev-dev
+          else
+            echo "Skipping libudev-dev installation."
+          fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
@@ -74,10 +78,14 @@ jobs:
         toolchain: stable
         components: clippy
     - name: Install libudev
+      env:
+        DEFAULT_FEATURE: ${{ github.event.inputs.defaultFeature }}
       run: |
-        if [ ${{ github.event.inputs.defaultFeature }} == true ]; then
-          "sudo apt-get install -y  libudev-dev"
-        fi
+          if [ "$DEFAULT_FEATURE" = "true" ]; then
+            sudo apt-get install -y libudev-dev
+          else
+            echo "Skipping libudev-dev installation."
+          fi
     - name: Tauri dependencies
       run: |
           sudo apt update && sudo apt install -y \
