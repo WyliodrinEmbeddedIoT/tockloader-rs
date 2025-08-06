@@ -11,7 +11,6 @@ use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio_serial::{SerialPort, SerialStream};
 
-use log::{error, info};
 // Tell the bootloader to reset its buffer to handle a new command
 pub const SYNC_MESSAGE: [u8; 3] = [0x00, 0xFC, 0x05];
 
@@ -115,7 +114,6 @@ pub async fn toggle_bootloader_entry_dtr_rts(
     port.write_request_to_send(false)
         .map_err(TockloaderError::SerialInitializationError)?;
 
-    info!("Terminal is ready");
     Ok(())
 }
 
@@ -137,11 +135,9 @@ pub async fn ping_bootloader_and_wait_for_response(
             read_bytes += port.read_buf(&mut ret).await?;
         }
         if ret[1] == Response::Pong as u8 {
-            info!("Bootloader responded to ping");
             return Ok(Response::from(ret[1]));
         }
     }
-    error!("Bootloader sent unexpected response");
     Ok(Response::from(ret[1]))
 }
 
@@ -171,20 +167,17 @@ pub async fn issue_command(
     message.push(command as u8);
 
     // If there should be a sync/reset message, prepend the outgoing message with it
-    info!("Message generated");
     if sync {
         message.insert(0, SYNC_MESSAGE[0]);
         message.insert(1, SYNC_MESSAGE[1]);
         message.insert(2, SYNC_MESSAGE[2]);
     }
-    info!("Inserted sync message");
 
     // Write the command message
     let mut bytes_written = 0;
     while bytes_written != message.len() {
         bytes_written += port.write_buf(&mut &message[bytes_written..]).await?;
     }
-    info!("Wrote command");
 
     // Response has a two byte header, then response_len bytes
     let bytes_to_read = 2 + response_len;

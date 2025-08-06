@@ -18,6 +18,9 @@ pub fn make_cli() -> Command {
             arg!(--"log-level" <LEVEL>)
                 .required(false)
                 .value_parser(["error", "warn", "info", "debug", "trace"])
+                .default_value("info")
+                .num_args(0..=1)
+                .default_missing_value("info")
                 .global(true),
         )
     // Note: arg_require_else_help will trigger the help command if no argument/subcommand is given.

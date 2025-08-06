@@ -133,20 +133,28 @@ async fn main() -> Result<()> {
     let user_level = matches
         .get_one::<String>("log-level")
         .map(String::as_str)
-        .unwrap_or("info");
+        .unwrap();
 
-    let filter = format!(
-        "tockloader=trace,\
-        tockloader_lib={user_level},\
-        probe_rs=warn,\
-        nusb=warn,\
-        tracing=warn,\
-        tracing_span=warn"
+    let mut builder = env_logger::Builder::new();
+
+    builder.filter_module(
+        "tockloader_lib",
+        match user_level {
+            "error" => log::LevelFilter::Error,
+            "warn" => log::LevelFilter::Warn,
+            "info" => log::LevelFilter::Info,
+            "debug" => log::LevelFilter::Debug,
+            "trace" => log::LevelFilter::Trace,
+            _ => log::LevelFilter::Info,
+        },
     );
+    builder.filter_module("tockloader", log::LevelFilter::Trace);
+    builder.filter_module("probe_rs", log::LevelFilter::Warn);
+    builder.filter_module("nusb", log::LevelFilter::Warn);
+    builder.filter_module("tracing", log::LevelFilter::Warn);
+    builder.filter_module("tracing_span", log::LevelFilter::Warn);
 
-    std::env::set_var("RUST_LOG", &filter);
-
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    builder.init();
 
     match matches.subcommand() {
         Some(("listen", sub_matches)) => {

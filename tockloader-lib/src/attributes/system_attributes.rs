@@ -11,8 +11,6 @@ use crate::errors::TockloaderError;
 
 use super::decode::{bytes_to_string, decode_attribute};
 
-// use log::info;
-// TODO: add actual logs here
 /// This structure contains all relevant information about board that is stored
 /// in the bootloader ROM.
 ///

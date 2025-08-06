@@ -1,7 +1,6 @@
 // Licensed under the Apache License, Version 2.0 or the MIT License.
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
-use log::info;
 
 /// Attributes are key-value pairs that describe hardware configuration, stored
 /// in a fixed 64-byte format:
@@ -44,7 +43,6 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     for n in decoder_key {
         key.push(n.expect("Error getting key for attributes."));
     }
-    info!("Decoded raw key");
     key = key.trim_end_matches('\0').to_string();
     let vlen = step[8];
 
@@ -59,7 +57,6 @@ pub(crate) fn decode_attribute(step: &[u8]) -> Option<DecodedAttribute> {
     for n in decoder_value {
         value.push(n.expect("Error getting key for attributes."));
     }
-    info!("Decoded raw value");
     value = value.trim_end_matches('\0').to_string();
     Some(DecodedAttribute::new(key, value))
 }
@@ -79,6 +76,5 @@ pub(crate) fn bytes_to_string(raw: &[u8]) -> String {
     for n in decoder {
         string.push(n.expect("Error getting key for attributes."));
     }
-    info!("Turned whole byte sequence into a string");
     string
 }
