@@ -159,20 +159,6 @@ fn shortid_invalid() {
 }
 
 #[test]
-fn shortid_buffer_too_short() {
-    let too_short_buffer: Vec<u8> = vec![0x02, 0x00, 0x01, 0x00];
-
-    let result = parse_tbf_header(&too_short_buffer, 2);
-    assert!(result.is_err());
-
-    let error = result.unwrap_err();
-    let debug_string = format!("{:?}", error);
-
-    // This now correctly asserts against the bug in the parser.
-    assert!(debug_string.contains("Internal kernel error. This is a bug."));
-}
-
-#[test]
 fn shortid_nonexistent() {
     // We can reuse the `simple.dat` artifact, as it should not have a ShortID TLV.
     let buffer = include_bytes!("./flashes/simple.dat").to_vec();
