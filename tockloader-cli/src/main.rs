@@ -134,6 +134,28 @@ async fn main() -> Result<()> {
     let mut cmd = cli::make_cli();
     let matches = cmd.get_matches_mut();
 
+    let user_level = matches
+        .get_one::<String>("log-level")
+        .map(String::as_str)
+        .unwrap();
+
+    let mut builder = env_logger::Builder::new();
+
+    let cli_level = match user_level {
+        "error" => log::LevelFilter::Error,
+        "warn" => log::LevelFilter::Warn,
+        "info" => log::LevelFilter::Info,
+        "debug" => log::LevelFilter::Debug,
+        "trace" => log::LevelFilter::Trace,
+        level => panic!("Unknown log level: {}", level),
+    };
+
+    builder.filter_level(log::LevelFilter::Off);
+    builder.filter_module("tockloader-lib", cli_level);
+    builder.filter_module("tockloader", cli_level);
+
+    builder.init();
+
     match matches.subcommand() {
         Some(("listen", sub_matches)) => {
             cli::validate(&mut cmd, sub_matches);

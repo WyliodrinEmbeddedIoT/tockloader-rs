@@ -7,7 +7,7 @@ use tokio::io::AsyncWriteExt;
 use tokio_serial::{FlowControl, Parity, SerialPort, SerialStream, StopBits};
 
 use crate::errors::TockloaderError;
-
+use log::info;
 pub struct ProbeTargetInfo {
     pub chip: String,
     pub core: usize,
@@ -78,6 +78,7 @@ impl Connection for ProbeRSConnection {
         let probe = self.debug_probe.open()?;
 
         self.session = Some(probe.attach(&self.target_info.chip, Permissions::default())?);
+        info!("ProbeRS connection opened succesfully.");
 
         Ok(())
     }
@@ -85,6 +86,7 @@ impl Connection for ProbeRSConnection {
     async fn close(&mut self) -> Result<(), TockloaderError> {
         // Session implements Drop, so we don't need to explicitly close it.
         self.session = None;
+        info!("ProbeRS connection closed.");
         Ok(())
     }
 
@@ -130,6 +132,7 @@ impl Connection for SerialConnection {
         stream.write_data_terminal_ready(self.target_info.data_terminal_ready)?;
 
         self.stream = Some(stream);
+        info!("Serial connection opened succesfully.");
         Ok(())
     }
 
@@ -140,6 +143,7 @@ impl Connection for SerialConnection {
                 .await
                 .map_err(|e| TockloaderError::Serial(e.into()))?;
         }
+        info!("Serial connection closed.");
         Ok(())
     }
 

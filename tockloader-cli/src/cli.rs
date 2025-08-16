@@ -14,9 +14,13 @@ pub fn make_cli() -> Command {
         .version(crate_version!())
         .subcommand_required(true)
         .subcommands(get_subcommands())
-        .args([
-            arg!(--debug "Print additional debugging information").action(clap::ArgAction::SetTrue)
-        ])
+        .arg(
+            arg!(--"log-level" <LEVEL>)
+                .required(false)
+                .value_parser(["error", "warn", "info", "debug", "trace"])
+                .default_value("info")
+                .global(true),
+        )
     // Note: arg_require_else_help will trigger the help command if no argument/subcommand is given.
     // This means that the --debug flag will not trigger the help menu, even if alone it does nothing.
 }
