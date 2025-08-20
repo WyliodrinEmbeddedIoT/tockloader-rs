@@ -46,6 +46,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPSTREAM: "tock/tock"
-          DOWNSTREAM: "WyliodrinEmbeddedIoT/tockloader-rs"
+          DOWNSTREAM: ${{ github.repository }}
         
           
