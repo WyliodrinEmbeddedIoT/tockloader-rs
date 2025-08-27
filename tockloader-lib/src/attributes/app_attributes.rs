@@ -98,9 +98,14 @@ impl AppAttributes {
                 _ => return Ok(apps_details),
             };
 
+            log::debug!(
+                "App #{apps_counter}: TBF version {tbf_version}, header size {header_size}, total size {total_size}",
+            );
+
             let mut header_data = vec![0u8; header_size as usize];
 
             board_core.read(appaddr, &mut header_data)?;
+            log::debug!("App #{apps_counter}: Header data: {header_data:?}");
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
 
@@ -118,7 +123,7 @@ impl AppAttributes {
             let mut footer_number = 0;
 
             // Try to parse footers until we reach the end of the application.
-            loop {
+            while footer_offset < total_size {
                 // We don't know the size of the current footer, so we read the
                 // remaining bytes in the application (`footer_offset -
                 // binary_end_offset`) , even if we overread.
@@ -135,10 +140,6 @@ impl AppAttributes {
                 footer_number += 1;
                 // we add 4 because that is the size of TL part of the TLV header (2 bytes type + 2 bytes length)
                 footer_offset += footer_info.1 + 4;
-
-                if footer_offset == total_size {
-                    break;
-                }
             }
 
             let details: AppAttributes = AppAttributes::new(header, footers);
@@ -207,6 +208,10 @@ impl AppAttributes {
                 _ => break,
             };
 
+            log::debug!(
+                "App #{apps_counter}: TBF version {tbf_version}, header size {header_size}, total size {total_size}",
+            );
+
             let mut pkt = (appaddr as u32).to_le_bytes().to_vec();
             let length = (header_size).to_le_bytes().to_vec();
             for i in length {
@@ -224,6 +229,7 @@ impl AppAttributes {
             )
             .await?;
 
+            log::debug!("App #{apps_counter}: Header data: {header_data:?}");
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
             let binary_end_offset = header.get_binary_end();
@@ -234,7 +240,7 @@ impl AppAttributes {
             let mut footer_number = 0;
 
             // Try to parse footers until we reach the end of the application.
-            loop {
+            while footer_offset < total_size {
                 // We don't know the size of the current footer, so we read the
                 // remaining bytes in the application (`footer_offset -
                 // binary_end_offset`) , even if we overread.
@@ -265,10 +271,6 @@ impl AppAttributes {
                 footer_number += 1;
                 // we add 4 because that is the size of TL part of the TLV header (2 bytes type + 2 bytes length)
                 footer_offset += footer_info.1 + 4;
-
-                if footer_offset == total_size {
-                    break;
-                }
             }
 
             let details: AppAttributes = AppAttributes::new(header, footers);
