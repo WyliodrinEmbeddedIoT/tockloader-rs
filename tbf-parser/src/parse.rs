@@ -152,6 +152,13 @@ pub fn parse_tbf_header(
                         .get(0..4)
                         .ok_or(types::TbfParseError::NotEnoughFlash)?
                         .try_into()?;
+
+                    log::debug!(
+                        "TLV Entry: type {:?}, length {}",
+                        tlv_header.tipe,
+                        tlv_header.length
+                    );
+
                     remaining = remaining
                         .get(4..)
                         .ok_or(types::TbfParseError::NotEnoughFlash)?;

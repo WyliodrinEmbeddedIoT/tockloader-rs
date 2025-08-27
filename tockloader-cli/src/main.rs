@@ -72,11 +72,16 @@ fn get_board_settings(user_options: &ArgMatches) -> BoardSettings {
 }
 
 fn using_serial(user_options: &ArgMatches) -> bool {
-    // TODO: refactor this in the future
-    *user_options.get_one::<bool>("serial").unwrap_or(&false)
-        || user_options
-            .get_one::<String>("protocol")
-            .is_some_and(|p| p == "legacy")
+    let serial_flag = *user_options.get_one::<bool>("serial").unwrap_or(&false);
+    if serial_flag {
+        return true;
+    }
+
+    let is_listen_command = user_options
+        .try_get_one::<String>("protocol")
+        .is_ok_and(|option| option.is_some_and(|val| val == "legacy"));
+
+    is_listen_command
 }
 
 fn get_known_board(user_options: &ArgMatches) -> Option<Box<dyn KnownBoard>> {
@@ -147,12 +152,13 @@ async fn main() -> Result<()> {
         "info" => log::LevelFilter::Info,
         "debug" => log::LevelFilter::Debug,
         "trace" => log::LevelFilter::Trace,
-        level => panic!("Unknown log level: {}", level),
+        level => panic!("Unknown log level: {level}"),
     };
 
     builder.filter_level(log::LevelFilter::Off);
     builder.filter_module("tockloader-lib", cli_level);
     builder.filter_module("tockloader", cli_level);
+    builder.filter_module("tbf_parser", cli_level);
 
     builder.init();
 
