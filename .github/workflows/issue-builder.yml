@@ -168,9 +168,8 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_REPO: ${{ github.repository }}
           UPSTREAM: "tock/tock"
-          DOWNSTREAM: "WyliodrinEmbeddedIoT/tockloader-rs"
+          DOWNSTREAM: ${{ github.repository }}
           TITLE: Bring updates from 'tock-tbf' to 'tbf-parser'
           LABELS: D3-TBF PARSER,P1-CRITICAL,EXCLUSIVE LABEL
           BODY: |
