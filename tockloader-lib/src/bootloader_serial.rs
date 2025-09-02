@@ -17,7 +17,7 @@ pub const SYNC_MESSAGE: [u8; 3] = [0x00, 0xFC, 0x05];
 // "This was chosen as it is infrequent in .bin files" - immesys
 pub const ESCAPE_CHAR: u8 = 0xFC;
 
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(5000);
 
 #[allow(dead_code)]
 pub enum Command {
