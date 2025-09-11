@@ -59,3 +59,8 @@ pub trait CommandInstall {
         tab_file: Tab,
     ) -> Result<(), TockloaderError>;
 }
+
+#[async_trait]
+pub trait CommandEraseApps {
+    async fn erase_apps(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError>;
+}
