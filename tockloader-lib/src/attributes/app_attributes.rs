@@ -112,10 +112,18 @@ impl AppAttributes {
             // The end of the application binary marks the beginning of the
             // footer.
             //
-            // TODO(george-cosma): This is not always true, `get_binary_end`
+            // Note: This is not always true, `get_binary_end`
             // does not make sense if the application is just padding. This can
             // crash the process.
             let binary_end_offset = header.get_binary_end();
+
+            match &header {
+                TbfHeader::TbfHeaderV2(_hd) => {}
+                _ => {
+                    appaddr += total_size as u64;
+                    continue;
+                }
+            };
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -233,6 +241,14 @@ impl AppAttributes {
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
             let binary_end_offset = header.get_binary_end();
+
+            match &header {
+                TbfHeader::TbfHeaderV2(_hd) => {}
+                _ => {
+                    appaddr += total_size as u64;
+                    continue;
+                }
+            };
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
