@@ -6,7 +6,7 @@ use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandInfo, CommandInstall, CommandList};
+use crate::{CommandEraseApps, CommandInfo, CommandInstall, CommandList};
 
 #[async_trait]
 impl CommandList for TockloaderConnection {
@@ -44,6 +44,16 @@ impl CommandInstall for TockloaderConnection {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.install_app(settings, tab_file).await,
             TockloaderConnection::Serial(conn) => conn.install_app(settings, tab_file).await,
+        }
+    }
+}
+
+#[async_trait]
+impl CommandEraseApps for TockloaderConnection {
+    async fn erase_apps(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.erase_apps(settings).await,
+            TockloaderConnection::Serial(_conn) => todo!(),
         }
     }
 }
