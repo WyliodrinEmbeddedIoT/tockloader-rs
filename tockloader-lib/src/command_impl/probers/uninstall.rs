@@ -78,7 +78,7 @@ impl CommandUninstall for ProbeRSConnection {
                 appaddr += app_size as u64;
             }
             if installed_apps.len() == 1 {
-                if app_name == None {
+                if app_name.is_none() {
                     return Err(TockloaderError::Tock(TockError::MissingAttribute(
                         "No apps installed".to_string(),
                     )));
@@ -153,7 +153,7 @@ impl CommandUninstall for ProbeRSConnection {
 
             loader.commit(session, options)?;
 
-            if app_name == None {
+            if app_name.is_none() {
                 // exit if we don't have a name set, else continue removing
                 break;
             }
