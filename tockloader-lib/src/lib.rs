@@ -62,5 +62,9 @@ pub trait CommandInstall {
 
 #[async_trait]
 pub trait CommandUninstall {
-    async fn uninstall_app(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError>;
+    async fn uninstall_app(
+        &mut self,
+        settings: &BoardSettings,
+        app_name: Option<&str>,
+    ) -> Result<(), TockloaderError>;
 }

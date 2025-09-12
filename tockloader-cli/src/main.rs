@@ -234,7 +234,8 @@ async fn main() -> Result<()> {
             let mut conn = open_connection(sub_matches).await?;
             let settings = get_board_settings(sub_matches);
 
-            conn.uninstall_app(&settings)
+            let app_name = sub_matches.get_one::<String>("name").map(String::as_str);
+            conn.uninstall_app(&settings, app_name)
                 .await
                 .context("Failed to uninstall app.")?;
         }

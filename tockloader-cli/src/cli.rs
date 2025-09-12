@@ -55,6 +55,7 @@ fn get_subcommands() -> Vec<Command> {
             .arg_required_else_help(false),
         Command::new("uninstall")
             .about("Uninstall apps")
+            .arg(arg!(--"name" <APPNAME>).required(false))
             .args(get_app_args())
             .args(get_channel_args())
             .arg_required_else_help(false),
