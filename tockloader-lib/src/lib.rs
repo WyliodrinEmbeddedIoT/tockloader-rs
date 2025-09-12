@@ -59,3 +59,8 @@ pub trait CommandInstall {
         tab_file: Tab,
     ) -> Result<(), TockloaderError>;
 }
+
+#[async_trait]
+pub trait CommandUninstall {
+    async fn uninstall_app(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError>;
+}
