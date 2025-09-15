@@ -99,11 +99,8 @@ impl CommandDisableApp for ProbeRSConnection {
             let mut app: &AppData;
             match app_name {
                 Some(app_name) => {
-                    app = match installed_apps.iter().find(|iter| iter.name == app_name && iter.enabled == false) {
-                        Some(app) => {
-                            log::info!("found app");
-                            app
-                        },
+                    app = match installed_apps.iter().find(|iter| iter.name == app_name && iter.enabled == true) {
+                        Some(app) => app,
                         None => break,
                     }
                 }
