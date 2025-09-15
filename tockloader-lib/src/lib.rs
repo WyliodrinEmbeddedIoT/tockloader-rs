@@ -59,3 +59,21 @@ pub trait CommandInstall {
         tab_file: Tab,
     ) -> Result<(), TockloaderError>;
 }
+
+#[async_trait]
+pub trait CommandEnableApp {
+    async fn enable_app(
+        &mut self,
+        settings: &BoardSettings,
+        app_name: Option<&str>,
+    ) -> Result<(), TockloaderError>;
+}
+
+#[async_trait]
+pub trait CommandDisableApp {
+    async fn disable_app(
+        &mut self,
+        settings: &BoardSettings,
+        app_name: Option<&str>,
+    ) -> Result<(), TockloaderError>;
+}

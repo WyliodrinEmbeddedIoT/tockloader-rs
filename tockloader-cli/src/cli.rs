@@ -53,6 +53,18 @@ fn get_subcommands() -> Vec<Command> {
             .args(get_app_args())
             .args(get_channel_args())
             .arg_required_else_help(false),
+        Command::new("enable-app")
+            .about("Enables app")
+            .arg(arg!(--"name" <APPNAME>).required(false))
+            .args(get_app_args())
+            .args(get_channel_args())
+            .arg_required_else_help(false),
+        Command::new("disable-app")
+            .about("Disables app")
+            .arg(arg!(--"name" <APPNAME>).required(false))
+            .args(get_app_args())
+            .args(get_channel_args())
+            .arg_required_else_help(false),
     ]
 }
 

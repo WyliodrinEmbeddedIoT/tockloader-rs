@@ -18,7 +18,7 @@ use tockloader_lib::connection::{
 use tockloader_lib::known_boards::KnownBoard;
 use tockloader_lib::tabs::tab::Tab;
 use tockloader_lib::{
-    list_debug_probes, list_serial_ports, CommandInfo, CommandInstall, CommandList,
+    list_debug_probes, list_serial_ports, CommandDisableApp, CommandEnableApp, CommandInfo, CommandInstall, CommandList
 };
 
 fn get_serial_target_info(user_options: &ArgMatches) -> SerialTargetInfo {
@@ -227,6 +227,26 @@ async fn main() -> Result<()> {
             conn.install_app(&settings, tab_file)
                 .await
                 .context("Failed to install app.")?;
+        }
+        Some(("enable-app", sub_matches)) => {
+            cli::validate(&mut cmd, sub_matches);
+            let mut conn = open_connection(sub_matches).await?;
+            let settings = get_board_settings(sub_matches);
+
+            let app_name = sub_matches.get_one::<String>("name").map(String::as_str);
+            conn.enable_app(&settings, app_name)
+                .await
+                .context("Failed to enable app.")?;
+        }
+        Some(("disable-app", sub_matches)) => {
+            cli::validate(&mut cmd, sub_matches);
+            let mut conn = open_connection(sub_matches).await?;
+            let settings = get_board_settings(sub_matches);
+
+            let app_name = sub_matches.get_one::<String>("name").map(String::as_str);
+            conn.disable_app(&settings, app_name)
+                .await
+                .context("Failed to disable app.")?;
         }
         _ => {
             println!("Could not run the provided subcommand.");
