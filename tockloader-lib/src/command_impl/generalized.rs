@@ -6,7 +6,7 @@ use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandInfo, CommandInstall, CommandList};
+use crate::{CommandDisableApp, CommandEnableApp, CommandInfo, CommandInstall, CommandList};
 
 #[async_trait]
 impl CommandList for TockloaderConnection {
@@ -44,6 +44,34 @@ impl CommandInstall for TockloaderConnection {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.install_app(settings, tab_file).await,
             TockloaderConnection::Serial(conn) => conn.install_app(settings, tab_file).await,
+        }
+    }
+}
+
+#[async_trait]
+impl CommandEnableApp for TockloaderConnection {
+    async fn enable_app(
+        &mut self,
+        settings: &BoardSettings,
+        app_name: Option<&str>,
+    ) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.enable_app(settings, app_name).await,
+            TockloaderConnection::Serial(_conn) => todo!(),
+        }
+    }
+}
+
+#[async_trait]
+impl CommandDisableApp for TockloaderConnection {
+    async fn disable_app(
+        &mut self,
+        settings: &BoardSettings,
+        app_name: Option<&str>,
+    ) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.disable_app(settings, app_name).await,
+            TockloaderConnection::Serial(_conn) => todo!(),
         }
     }
 }
