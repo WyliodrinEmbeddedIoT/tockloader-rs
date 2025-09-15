@@ -23,7 +23,8 @@ impl CommandEnableApp for ProbeRSConnection {
             return Err(InternalError::ConnectionNotOpen.into());
         }
         let session = self.session.as_mut().expect("Board must be open");
-        'outer: loop {  // this loop is labeled so we can exit early if the app is already enabled
+        'outer: loop {
+            // this loop is labeled so we can exit early if the app is already enabled
             let mut installed_apps: Vec<AppData> = Vec::new();
             let mut index: u8 = 1;
             let mut appaddr: u64 = settings.start_address;
@@ -76,9 +77,13 @@ impl CommandEnableApp for ProbeRSConnection {
                     address: appaddr,
                     name: pname,
                     size: app_size,
-                    checksum: u32::from_ne_bytes(header_data[CHECKSUM_OFFSET as usize..CHECKSUM_OFFSET as usize + 4].try_into().unwrap()),
+                    checksum: u32::from_ne_bytes(
+                        header_data[CHECKSUM_OFFSET as usize..CHECKSUM_OFFSET as usize + 4]
+                            .try_into()
+                            .unwrap(),
+                    ),
                     index,
-                    enabled: if header_data[ENABLED_OFFSET as usize] == 1 { true } else { false },
+                    enabled: header_data[ENABLED_OFFSET as usize] == 1,
                 });
                 // log::info!("found checksum {:?}", (installed_apps[index as usize].checksum).to_ne_bytes());
                 // log::info!("changing checksum will result in {:?}", (installed_apps[index as usize].checksum + 1).to_ne_bytes());
@@ -99,7 +104,10 @@ impl CommandEnableApp for ProbeRSConnection {
             let mut app: &AppData;
             match app_name {
                 Some(app_name) => {
-                    app = match installed_apps.iter().find(|iter| iter.name == app_name && iter.enabled == false) {
+                    app = match installed_apps
+                        .iter()
+                        .find(|iter| iter.name == app_name && !iter.enabled)
+                    {
                         Some(app) => app,
                         None => break,
                     }
@@ -121,31 +129,38 @@ impl CommandEnableApp for ProbeRSConnection {
                     .unwrap()
                         == "Confirm"
                     {
-                        if app.enabled == true {
+                        if app.enabled {
                             println!("App is already enabled!");
-                            break 'outer;   // just exit
+                            break 'outer; // just exit
                         }
-                        break
+                        break;
                     }
                 },
             }
-            
+
             let mut loader = session.target().flash_loader();
-            
-            if app.index == 0 {     // ALL
+
+            if app.index == 0 {
+                // ALL
                 // log::info!("ALL");
                 for app_iter in installed_apps[1..].iter() {
                     // log::info!("checking app {}", app_iter.name);
-                    if app_iter.enabled == false {
+                    if !app_iter.enabled {
                         // log::info!("entered here????");
                         loader.add_data(app_iter.address + ENABLED_OFFSET, &[0x1])?;
-                        loader.add_data(app_iter.address + CHECKSUM_OFFSET, &(app_iter.checksum + 1).to_ne_bytes())?; // the checksum must be increased or we'll invalidate the header
+                        loader.add_data(
+                            app_iter.address + CHECKSUM_OFFSET,
+                            &(app_iter.checksum + 1).to_ne_bytes(),
+                        )?; // the checksum must be increased or we'll invalidate the header
                     }
                 }
-            }
-            else {  // only one
+            } else {
+                // only one
                 loader.add_data(app.address + ENABLED_OFFSET, &[0x1])?;
-                loader.add_data(app.address + CHECKSUM_OFFSET, &(app.checksum + 1).to_ne_bytes())?; // the checksum must be increased or we'll invalidate the header
+                loader.add_data(
+                    app.address + CHECKSUM_OFFSET,
+                    &(app.checksum + 1).to_ne_bytes(),
+                )?; // the checksum must be increased or we'll invalidate the header
             }
             let mut options = DownloadOptions::default();
             options.keep_unwritten_bytes = true;

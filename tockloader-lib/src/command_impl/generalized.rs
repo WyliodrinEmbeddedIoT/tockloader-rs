@@ -6,7 +6,7 @@ use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandInfo, CommandInstall, CommandList, CommandEnableApp, CommandDisableApp};
+use crate::{CommandDisableApp, CommandEnableApp, CommandInfo, CommandInstall, CommandList};
 
 #[async_trait]
 impl CommandList for TockloaderConnection {
@@ -75,4 +75,3 @@ impl CommandDisableApp for TockloaderConnection {
         }
     }
 }
-

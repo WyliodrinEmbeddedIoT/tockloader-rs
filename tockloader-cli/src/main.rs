@@ -18,7 +18,8 @@ use tockloader_lib::connection::{
 use tockloader_lib::known_boards::KnownBoard;
 use tockloader_lib::tabs::tab::Tab;
 use tockloader_lib::{
-    list_debug_probes, list_serial_ports, CommandDisableApp, CommandEnableApp, CommandInfo, CommandInstall, CommandList
+    list_debug_probes, list_serial_ports, CommandDisableApp, CommandEnableApp, CommandInfo,
+    CommandInstall, CommandList,
 };
 
 fn get_serial_target_info(user_options: &ArgMatches) -> SerialTargetInfo {
