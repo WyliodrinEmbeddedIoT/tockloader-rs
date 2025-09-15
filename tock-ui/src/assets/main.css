@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Project base styles can go below */
+html, body, #app {
+	height: 100%;
+    background-color: #E7F0FA;
+}
