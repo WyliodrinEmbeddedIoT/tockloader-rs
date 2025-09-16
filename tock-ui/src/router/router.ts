@@ -4,6 +4,7 @@ import KnownBoardView from '../views/KnownBoardView.vue'
 import CustomizeDebugView from '../views/CustomizeDebugView.vue'
 import CustomizeSerialView from '../views/CustomizeSerialView.vue'
 import DeviceManagerView from '../views/DeviceManagerView.vue'
+import AddAppView from '../views/AddAppView.vue'
 
 const routes = [
   {
@@ -30,6 +31,11 @@ const routes = [
     path: '/device-manager',
     name: 'DeviceManager',
     component: DeviceManagerView
+  },
+  {
+    path: '/add-app',
+    name: 'AddApp',
+    component: AddAppView
   },
 ]
 
