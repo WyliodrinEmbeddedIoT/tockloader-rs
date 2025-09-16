@@ -1,6 +1,15 @@
 <script setup>
+import { defineEmits } from 'vue';
 import Card from '../components/Card.vue';
 import AppIcon from '../components/AppIcon.vue';
+import Terminal from '../components/Terminal.vue';
+
+const emit = defineEmits(['reset-connection']);
+
+function resetConnection() {
+	// safe default: emit an event so parent can handle actual reset logic
+	emit('reset-connection');
+}
 </script>
 
 
@@ -17,7 +26,7 @@ import AppIcon from '../components/AppIcon.vue';
 						<div class="absolute top-0 left-0 w-full bg-[#607B9B] text-white text-xl px-4 py-1 rounded-t-2xl flex items-center justify-center">
 							<span>Installed Apps</span>
 						</div>
-						<RouterLink to="/">
+						<RouterLink to="/add-app">
 							<button aria-label="Add" class="absolute top-0 right-0 h-9 px-3 bg-[#84A1C4] text-white rounded-tr-2xl flex items-center justify-center z-10 shadow-md">
 								<i class="pi pi-file-plus text-lg"></i>
 							</button>
@@ -30,7 +39,21 @@ import AppIcon from '../components/AppIcon.vue';
 					</Card>
 				</div>
 				<!-- Right column left empty to reserve the right half -->
-				<div class="hidden md:block md:w-[48%] ml-4">
+				<div class="hidden md:flex md:flex-col md:w-1/2 ml-4 h-full">
+						<!-- Top half: paragraphs, scrollable if overflow -->
+						<div class="h-[40%] overflow-auto p-4 relative">
+							<RouterLink to="/">
+								<button @click="resetConnection" class="absolute top-2 right-2 text-lg bg-[#84A1C4] text-white px-3 py-2 rounded-xl shadow-xl hover:bg-[#607B9B]">
+									Reset connection
+								</button>
+							</RouterLink>
+							<p class="mb-2">Product: BBC micro:bit CMSIS-DAP</p>
+							<p class="mb-2">Serial Number: 5738946523759834256986908476543698436984</p>
+						</div>
+					<!-- Bottom half: terminal area, scrollable -->
+					<div class="h-[60%] overflow-auto mt-4">
+						<Terminal />
+					</div>
 				</div>
 			</div>
 		</div>
