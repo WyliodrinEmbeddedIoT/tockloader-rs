@@ -117,6 +117,14 @@ impl AppAttributes {
             // crash the process.
             let binary_end_offset = header.get_binary_end();
 
+            match &header {
+                TbfHeader::TbfHeaderV2(_hd) => {}
+                _ => {
+                    appaddr += total_size as u64;
+                    continue;
+                }
+            };
+
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
             let mut footer_offset = binary_end_offset;
