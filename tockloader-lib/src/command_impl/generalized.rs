@@ -53,10 +53,13 @@ impl CommandUninstall for TockloaderConnection {
     async fn uninstall_app(
         &mut self,
         settings: &BoardSettings,
-        app_name: Option<&str>,
+        installed_apps: &Vec<AppAttributes>,
+        app: &AppAttributes,
     ) -> Result<(), TockloaderError> {
         match self {
-            TockloaderConnection::ProbeRS(conn) => conn.uninstall_app(settings, app_name).await,
+            TockloaderConnection::ProbeRS(conn) => {
+                conn.uninstall_app(settings, installed_apps, app).await
+            }
             TockloaderConnection::Serial(_conn) => todo!(),
         }
     }

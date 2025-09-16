@@ -65,6 +65,7 @@ pub trait CommandUninstall {
     async fn uninstall_app(
         &mut self,
         settings: &BoardSettings,
-        app_name: Option<&str>,
+        installed_apps: &Vec<AppAttributes>,
+        app: &AppAttributes,
     ) -> Result<(), TockloaderError>;
 }

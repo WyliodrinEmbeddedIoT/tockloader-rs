@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use clap::ArgMatches;
 use cli::make_cli;
 use known_boards::KnownBoardNames;
+use tockloader_lib::attributes::app_attributes::AppAttributes;
 use tockloader_lib::board_settings::BoardSettings;
 use tockloader_lib::connection::{
     Connection, ProbeRSConnection, ProbeTargetInfo, SerialConnection, SerialTargetInfo,
@@ -233,9 +234,45 @@ async fn main() -> Result<()> {
             cli::validate(&mut cmd, sub_matches);
             let mut conn = open_connection(sub_matches).await?;
             let settings = get_board_settings(sub_matches);
-
+            let installed_apps = conn.list(&settings).await.context("Failed to list apps.")?;
             let app_name = sub_matches.get_one::<String>("name").map(String::as_str);
-            conn.uninstall_app(&settings, app_name)
+            if installed_apps.is_empty() {
+                panic!("No apps installed");
+            }
+            let mut app: &AppAttributes;
+            match app_name {
+                Some(app_name) => {
+                    app = match installed_apps
+                        .iter()
+                        .find(|iter| iter.tbf_header.get_package_name().unwrap_or("") == app_name)
+                    {
+                        Some(app) => app,
+                        None => panic!("Specified app is not installed!"),
+                    }
+                }
+                None => loop {
+                    app = inquire::Select::new(
+                        "Which app do you want to uninstall?",
+                        installed_apps.iter().clone().collect(),
+                    )
+                    .prompt()
+                    .context("No apps installed")
+                    .unwrap();
+
+                    if inquire::Select::new(
+                        format!("You chose {app}",).as_str(),
+                        ["Cancel", "Confirm"].to_vec(),
+                    )
+                    .prompt()
+                    .unwrap()
+                        == "Confirm"
+                    {
+                        break;
+                    }
+                },
+            }
+
+            conn.uninstall_app(&settings, &installed_apps, app)
                 .await
                 .context("Failed to uninstall app.")?;
         }
