@@ -53,7 +53,7 @@ impl CommandEraseApps for TockloaderConnection {
     async fn erase_apps(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError> {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.erase_apps(settings).await,
-            TockloaderConnection::Serial(_conn) => todo!(),
+            TockloaderConnection::Serial(conn) => conn.erase_apps(settings).await,
         }
     }
 }
