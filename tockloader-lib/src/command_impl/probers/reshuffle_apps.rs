@@ -409,6 +409,10 @@ fn reconstruct_app(tab: &Option<Tab>, settings: &BoardSettings) -> Option<AppAtt
         // log::info!("escaped loop?");
         return Some(AppAttributes::new(
             if let Some(addr) = header.get_fixed_address_flash() {
+                if addr < settings.start_address as  u32 { 
+                    // this rust app should not be here
+                    panic!("This rust app starts at {addr:#x}, while the board's start_address is {:#x}", settings.start_address)
+                }
                 addr as u64
             } else {
                 settings.start_address
