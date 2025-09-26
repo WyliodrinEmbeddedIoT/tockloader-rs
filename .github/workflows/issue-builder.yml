@@ -170,10 +170,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           UPSTREAM: "tock/tock"
           DOWNSTREAM: ${{ github.repository }}
-          TITLE: Bring updates from 'tock-tbf' to 'tbf-parser'
+          TITLE: Bring updates from `tock-tbf` to `tbf-parser`
           LABELS: D3-TBF PARSER,P1-CRITICAL,EXCLUSIVE LABEL
           BODY: |
-            Please review the commits in order of oldest to newest (bottom to top). Once you have implemented the corresponding updates, copy-paste the sha of the commit you last covered in ['.lastcommsha'](https://github.com/WyliodrinEmbeddedIoT/tockloader-rs/tree/main/.github/.lastcommsha). Make sure to label any PRs addressing the commits in this list with 'EXCLUSIVE LABEL'. The following commits need to be accounted for:
+            Please review the commits in order of oldest to newest (bottom to top). Once you have implemented the corresponding updates, copy-paste the sha of the commit you last covered in [.lastcommsha](https://github.com/WyliodrinEmbeddedIoT/tockloader-rs/tree/main/.github/.lastcommsha). Make sure to label any PRs addressing the commits in this list with `EXCLUSIVE LABEL`. The following commits need to be accounted for:
           PINNED: false
           CLOSE_PREVIOUS: true
 
