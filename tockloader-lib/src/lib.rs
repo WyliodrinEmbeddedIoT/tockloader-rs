@@ -66,7 +66,7 @@ pub trait CommandEraseApps {
 }
 
 #[async_trait]
-pub trait CommandReshuffleApps {
+pub trait UtilityReshuffleApps {
     async fn reshuffle_apps(
         &mut self,
         settings: &BoardSettings,
