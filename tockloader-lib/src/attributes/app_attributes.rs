@@ -25,6 +25,7 @@ pub struct AppAttributes {
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
     pub installed: bool,
+    pub is_padding: bool,
 }
 
 impl std::fmt::Display for AppAttributes {
@@ -73,6 +74,7 @@ impl AppAttributes {
             tbf_header: header_data,
             tbf_footers: footers_data,
             installed,
+            is_padding: false,
         }
     }
 
@@ -145,13 +147,10 @@ impl AppAttributes {
             // crash the process.
             let binary_end_offset = header.get_binary_end();
 
-            match &header {
-                TbfHeader::TbfHeaderV2(_hd) => {}
-                _ => {
-                    appaddr += total_size as u64;
-                    continue;
-                }
-            };
+            if !header.is_app() {
+                appaddr += total_size as u64;
+                continue;
+            }
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -269,15 +268,13 @@ impl AppAttributes {
             log::debug!("App #{apps_counter}: Header data: {header_data:?}");
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
+
             let binary_end_offset = header.get_binary_end();
 
-            match &header {
-                TbfHeader::TbfHeaderV2(_hd) => {}
-                _ => {
-                    appaddr += total_size as u64;
-                    continue;
-                }
-            };
+            if !header.is_app() {
+                appaddr += total_size as u64;
+                continue;
+            }
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;

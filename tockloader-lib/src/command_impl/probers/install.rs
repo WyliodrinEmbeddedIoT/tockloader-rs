@@ -4,7 +4,7 @@ use crate::board_settings::BoardSettings;
 use crate::connection::ProbeRSConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandInstall, CommandReshuffleApps};
+use crate::{CommandInstall, UtilityReshuffleApps};
 
 #[async_trait]
 impl CommandInstall for ProbeRSConnection {
