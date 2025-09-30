@@ -4,16 +4,19 @@ use crate::board_settings::BoardSettings;
 use crate::connection::SerialConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::CommandInstall;
+use crate::{CommandInstall, UtilityReshuffleApps};
 
 #[async_trait]
 impl CommandInstall for SerialConnection {
     async fn install_app(
         &mut self,
-        _settings: &BoardSettings,
-        _tab_file: Tab,
+        settings: &BoardSettings,
+        tab_file: Tab,
     ) -> Result<(), TockloaderError> {
-        todo!()
+        // todo!()
+        log::info!("install");
+        let _ = self.reshuffle_apps(settings, Some(tab_file)).await;
+        Ok(())
     }
 }
 

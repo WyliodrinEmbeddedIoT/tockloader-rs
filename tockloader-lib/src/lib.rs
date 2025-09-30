@@ -64,3 +64,12 @@ pub trait CommandInstall {
 pub trait CommandEraseApps {
     async fn erase_apps(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError>;
 }
+
+#[async_trait]
+pub trait UtilityReshuffleApps {
+    async fn reshuffle_apps(
+        &mut self,
+        settings: &BoardSettings,
+        tab: Option<Tab>,
+    ) -> Result<(), TockloaderError>;
+}

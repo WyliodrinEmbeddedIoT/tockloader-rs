@@ -6,7 +6,7 @@ use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandEraseApps, CommandInfo, CommandInstall, CommandList};
+use crate::{CommandEraseApps, CommandInfo, CommandInstall, CommandList, UtilityReshuffleApps};
 
 #[async_trait]
 impl CommandList for TockloaderConnection {
@@ -54,6 +54,20 @@ impl CommandEraseApps for TockloaderConnection {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.erase_apps(settings).await,
             TockloaderConnection::Serial(conn) => conn.erase_apps(settings).await,
+        }
+    }
+}
+
+#[async_trait]
+impl UtilityReshuffleApps for TockloaderConnection {
+    async fn reshuffle_apps(
+        &mut self,
+        settings: &BoardSettings,
+        tab: Option<Tab>,
+    ) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(_conn) => todo!(),
+            TockloaderConnection::Serial(conn) => conn.reshuffle_apps(settings, tab).await,
         }
     }
 }

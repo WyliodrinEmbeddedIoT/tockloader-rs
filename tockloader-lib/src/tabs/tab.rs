@@ -78,6 +78,7 @@ impl Tab {
     pub fn extract_binary(&self, arch: &str) -> Result<Vec<u8>, TockloaderError> {
         for file in &self.tbf_files {
             if file.filename.starts_with(arch) {
+                // if file.filename.starts_with("cortex-m4.0x00040000.0x20008000") {    // debugging purposes
                 return Ok(file.data.clone());
             }
         }

@@ -17,7 +17,7 @@ pub const SYNC_MESSAGE: [u8; 3] = [0x00, 0xFC, 0x05];
 // "This was chosen as it is infrequent in .bin files" - immesys
 pub const ESCAPE_CHAR: u8 = 0xFC;
 
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(5000);
 
 #[allow(dead_code)]
 pub enum Command {
@@ -207,19 +207,27 @@ pub async fn issue_command(
     }
 
     // Write the command message
+    // log::info!("write {:?}", message);
     write_bytes(port, &message, DEFAULT_TIMEOUT).await?;
 
+    // log::info!("pass write");
     // Response has a two byte header, then response_len bytes
     let header = read_bytes(port, 2, DEFAULT_TIMEOUT).await?;
-
+    // log::info!("read");
+    // log::info!("header is {:?} and respponse len {}", header, response_len);
+    // if header[0..2] != [0u8, ESCAPE_CHAR] {
     if header[0..2] != [ESCAPE_CHAR, response_code as u8] {
+        // log::info!("header is {:?} AND IT IS WRONG", header);
         return Err(TockError::BootloaderBadHeader(header[0], header[1]).into());
     }
+    // }
+    // log::info!("header ok");
 
     if response_len != 0 {
+        // log::info!("response len {}", response_len);
         let input = read_bytes(port, response_len, DEFAULT_TIMEOUT).await?;
         let mut result = Vec::with_capacity(input.len());
-
+        // log::info!("input len is {}", input.len());
         // De-escape and add array of read in the bytes
 
         // TODO(george-cosma): Extract this into a function and unit test this.
@@ -227,6 +235,23 @@ pub async fn issue_command(
         while i < input.len() {
             if i + 1 < input.len() && input[i] == ESCAPE_CHAR && input[i + 1] == ESCAPE_CHAR {
                 // Found consecutive ESCAPE_CHAR bytes, add only one
+                // log::info!("here");
+
+                // (adi)
+                // Encountering a double escape will actually break the address
+                //
+                // What happened:
+                //      - I used this function to read binaries (for reshuffle)
+                //      - After installing 2 apps via serial, a double ESCAPE will encounter
+                //      - The second escape(i think) will not get read
+                //      that means that for the next serial read, we'll be one byte to the left
+                //      To fix this offset, I just read another byte
+                //
+                let _ = read_bytes(port, 1, DEFAULT_TIMEOUT).await?;
+                //
+                // I am in disbelief
+                // I can't believe this worked
+
                 result.push(ESCAPE_CHAR);
                 i += 2; // Skip both bytes
             } else {
@@ -235,6 +260,7 @@ pub async fn issue_command(
                 i += 1;
             }
         }
+        // log::info!("result len is {}", result.len());
 
         Ok((Response::from(header[1]), result))
     } else {
