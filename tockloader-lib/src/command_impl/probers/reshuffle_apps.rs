@@ -27,6 +27,9 @@ impl UtilityReshuffleApps for ProbeRSConnection {
 
         let session = self.session.as_mut().expect("Board must be open");
 
+
+        // -- 1. GET EXISTING APPS -- //
+
         // get the already installed apps
         let mut installed_apps: Vec<AppAttributes>;
         {
@@ -34,6 +37,8 @@ impl UtilityReshuffleApps for ProbeRSConnection {
             installed_apps =
                 AppAttributes::read_apps_data_probe(&mut core, settings.start_address).unwrap();
         }
+
+        // -- 2. GET BINARIES -- //
 
         // if a tab is provided, reconstruct the app and add it to the list
         if let Some(mut app) = reconstruct_app(&tab, settings) {
@@ -62,6 +67,10 @@ impl UtilityReshuffleApps for ProbeRSConnection {
                 }
             }
         }
+
+
+
+        // -- 3. REORDER -- //
 
         // separate the apps
         let mut rust_apps: Vec<AppAttributes> = Vec::new();
@@ -259,6 +268,10 @@ impl UtilityReshuffleApps for ProbeRSConnection {
                 index += 1;
             }
         }
+
+        // -- 4. WRITE -- //
+
+
         let mut pkt: Vec<u8> = Vec::new();
         for item in saved_configuration.iter() {
             // i have to find a better way of determining if i used a padding or not, this is not okay
