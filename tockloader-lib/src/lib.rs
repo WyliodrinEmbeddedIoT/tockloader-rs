@@ -36,6 +36,12 @@ pub fn list_serial_ports() -> Result<Vec<SerialPortInfo>, TockloaderError> {
 // TODO(george-cosma): General housekeeping in these functions.
 
 #[async_trait]
+pub trait ReadWrite {
+    async fn read(&mut self, address: u64, data: &mut [u8]) -> Result<(), TockloaderError>;
+    async fn write(&mut self, address: u64, data: &[u8]) -> Result<(), TockloaderError>;
+}
+
+#[async_trait]
 pub trait CommandList {
     async fn list(
         &mut self,

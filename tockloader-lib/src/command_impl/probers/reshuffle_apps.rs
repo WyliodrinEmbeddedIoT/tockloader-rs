@@ -27,7 +27,6 @@ impl UtilityReshuffleApps for ProbeRSConnection {
 
         let session = self.session.as_mut().expect("Board must be open");
 
-
         // -- 1. GET EXISTING APPS -- //
 
         // get the already installed apps
@@ -67,8 +66,6 @@ impl UtilityReshuffleApps for ProbeRSConnection {
                 }
             }
         }
-
-
 
         // -- 3. REORDER -- //
 
@@ -270,7 +267,6 @@ impl UtilityReshuffleApps for ProbeRSConnection {
         }
 
         // -- 4. WRITE -- //
-
 
         let mut pkt: Vec<u8> = Vec::new();
         for item in saved_configuration.iter() {

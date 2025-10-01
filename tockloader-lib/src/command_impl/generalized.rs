@@ -6,7 +6,26 @@ use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandEraseApps, CommandInfo, CommandInstall, CommandList, UtilityReshuffleApps};
+use crate::{
+    CommandEraseApps, CommandInfo, CommandInstall, CommandList, ReadWrite, UtilityReshuffleApps,
+};
+
+#[async_trait]
+impl ReadWrite for TockloaderConnection {
+    async fn read(&mut self, address: u64, data: &mut [u8]) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.read(address, data).await,
+            TockloaderConnection::Serial(conn) => conn.read(address, data).await,
+        }
+    }
+
+    async fn write(&mut self, address: u64, data: &[u8]) -> Result<(), TockloaderError> {
+        match self {
+            TockloaderConnection::ProbeRS(conn) => conn.write(address, data).await,
+            TockloaderConnection::Serial(conn) => conn.write(address, data).await,
+        }
+    }
+}
 
 #[async_trait]
 impl CommandList for TockloaderConnection {

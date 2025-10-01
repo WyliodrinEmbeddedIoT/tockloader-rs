@@ -10,7 +10,9 @@ use tbf_parser::{self};
 use tokio_serial::SerialStream;
 
 use crate::bootloader_serial::{issue_command, Command, Response};
+use crate::connection::TockloaderConnection;
 use crate::errors::{TockError, TockloaderError};
+use crate::ReadWrite;
 
 /// This structure contains all relevant information about a tock application.
 ///
@@ -113,18 +115,14 @@ impl AppAttributes {
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
 
-            // The end of the application binary marks the beginning of the
-            // footer.
-            //
-            // Note: This is not always true, `get_binary_end`
-            // does not make sense if the application is just padding. This can
-            // crash the process.
-            let binary_end_offset = header.get_binary_end();
-
             if !header.is_app() {
                 appaddr += total_size as u64;
                 continue;
             }
+
+            // The end of the application binary marks the beginning of the
+            // footer.
+            let binary_end_offset = header.get_binary_end();
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -138,9 +136,9 @@ impl AppAttributes {
                 // binary_end_offset`) , even if we overread.
                 let mut appfooter =
                     vec![0u8; (total_footers_size - (footer_offset - binary_end_offset)) as usize];
-                // log::info!("footer init {:?}", appfooter);
+
                 board_core.read(appaddr + footer_offset as u64, &mut appfooter)?;
-                // log::info!("footer read {:?}", appfooter);
+
                 let footer_info =
                     parse_tbf_footer(&appfooter).map_err(TockError::InvalidAppTbfHeader)?;
 
@@ -151,10 +149,9 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes =
-                AppAttributes::new(appaddr, total_size, apps_counter, header, footers, true);
+            let details: AppAttributes = AppAttributes::new(appaddr as u32, header, footers);
 
-            apps_details.insert(apps_counter.into(), details);
+            apps_details.insert(apps_counter, details);
             apps_counter += 1;
             appaddr += total_size as u64;
         }
@@ -243,12 +240,12 @@ impl AppAttributes {
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
 
-            let binary_end_offset = header.get_binary_end();
-
             if !header.is_app() {
                 appaddr += total_size as u64;
                 continue;
             }
+
+            let binary_end_offset = header.get_binary_end();
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -289,13 +286,27 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes =
-                AppAttributes::new(appaddr, total_size, apps_counter, header, footers, true);
+            let details: AppAttributes = AppAttributes::new(appaddr as u32, header, footers);
 
-            apps_details.insert(apps_counter.into(), details);
+            apps_details.insert(apps_counter, details);
             apps_counter += 1;
             appaddr += total_size as u64;
         }
         Ok(apps_details)
+    }
+
+    /// Read the full binary of the application from the device's memory, including
+    /// the TBF header, using the provided connection.
+    pub(crate) async fn read_full_binary(
+        &self,
+        connection: &mut TockloaderConnection,
+    ) -> Result<Vec<u8>, TockloaderError> {
+        let mut data = vec![0u8; self.tbf_header.total_size() as usize];
+
+        connection
+            .read(self.start_address as u64, &mut data)
+            .await?;
+
+        Ok(data)
     }
 }
