@@ -1184,6 +1184,8 @@ impl TbfHeader {
         }
     }
 
+    /// Returns the checksum for TBF header according to the `parse_tbf_header` function
+    /// `new_flags` is the new value we want to set
     pub fn compute_checksum(header: &[u8], new_flags: u32) -> Result<u32, TbfParseError> {
         let mut checksum: u32 = 0;
 
@@ -1203,7 +1205,8 @@ impl TbfHeader {
         Ok(checksum)
     }
 
-    pub fn set_flags(&mut self, flags: u32, header: &[u8]) -> Result<[u8; 16], TbfParseError> {
+    /// Sets the flag field and updates the checksum, it modifies the state accordingly
+    pub fn set_flags(&mut self, flags: u32, header: &[u8]) -> Result<(), TbfParseError> {
         let new_checksum = Self::compute_checksum(header, flags)?;
         match self {
             TbfHeader::TbfHeaderV2(hd) => {
@@ -1216,44 +1219,21 @@ impl TbfHeader {
             }
         }
 
-        self.serialize()
+        Ok(())
     }
 
+    /// Returns a 16 byte array with the serialized base header (little-endian format)
     pub fn serialize(&self) -> Result<[u8; 16], TbfParseError> {
-        match self {
-            TbfHeader::TbfHeaderV2(hd) => {
-                let base = &hd.base;
-                let mut bytes = [0u8; 16];
-                bytes[0..2].copy_from_slice(&base.version.to_le_bytes());
-                bytes[2..4].copy_from_slice(&base.header_size.to_le_bytes());
-                bytes[4..8].copy_from_slice(&base.total_size.to_le_bytes());
-                bytes[8..12].copy_from_slice(&base.flags.to_le_bytes());
-                bytes[12..16].copy_from_slice(&base.checksum.to_le_bytes());
-                Ok(bytes)
-            }
-            TbfHeader::Padding(base) => {
-                let mut bytes = [0u8; 16];
-                bytes[0..2].copy_from_slice(&base.version.to_le_bytes());
-                bytes[2..4].copy_from_slice(&base.header_size.to_le_bytes());
-                bytes[4..8].copy_from_slice(&base.total_size.to_le_bytes());
-                bytes[8..12].copy_from_slice(&base.flags.to_le_bytes());
-                bytes[12..16].copy_from_slice(&base.checksum.to_le_bytes());
-                Ok(bytes)
-            }
-        }
-    }
-
-    pub fn update_from_serialize(&mut self, bytes: &[u8]) -> Result<(), TbfParseError> {
-        let new_base = TbfHeaderV2Base::try_from(&bytes[..])?;
-        match self {
-            TbfHeader::TbfHeaderV2(hd) => {
-                hd.base = new_base;
-                Ok(())
-            }
-            TbfHeader::Padding(base) => {
-                *base = new_base;
-                Ok(())
-            }
-        }
+        let base = match self {
+            TbfHeader::TbfHeaderV2(hd) => &hd.base,
+            TbfHeader::Padding(base) => base,
+        };
+        let mut bytes = [0u8; 16];
+        bytes[0..2].copy_from_slice(&base.version.to_le_bytes());
+        bytes[2..4].copy_from_slice(&base.header_size.to_le_bytes());
+        bytes[4..8].copy_from_slice(&base.total_size.to_le_bytes());
+        bytes[8..12].copy_from_slice(&base.flags.to_le_bytes());
+        bytes[12..16].copy_from_slice(&base.checksum.to_le_bytes());
+        Ok(bytes)
     }
 }
