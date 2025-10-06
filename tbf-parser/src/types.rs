@@ -1183,4 +1183,85 @@ impl TbfHeader {
             _ => None,
         }
     }
+
+    /// Returns the checksum for TBF header according to the `parse_tbf_header` function
+    /// `new_flags` is the new value we want to set
+    pub fn compute_checksum(header: &[u8], new_flags: u32) -> Result<u32, TbfParseError> {
+        let mut checksum: u32 = 0;
+
+        let header_iter = header.chunks_exact(4);
+
+        // Iterate all chunks and XOR the chunks to compute the checksum.
+        for (i, chunk) in header_iter.enumerate() {
+            let word = if i == 2 {
+                new_flags
+            } else if i == 3 {
+                continue;
+            } else {
+                u32::from_le_bytes(chunk.try_into()?)
+            };
+            checksum ^= word;
+        }
+        Ok(checksum)
+    }
+
+    /// Sets the flag field and updates the checksum, it modifies the state accordingly
+    pub fn set_flags(&mut self, flags: u32, header: &[u8]) -> Result<(), TbfParseError> {
+        let new_checksum = Self::compute_checksum(header, flags)?;
+        match self {
+            TbfHeader::TbfHeaderV2(hd) => {
+                hd.base.flags = flags;
+                hd.base.checksum = new_checksum;
+            }
+            TbfHeader::Padding(base) => {
+                base.flags = flags;
+                base.checksum = new_checksum;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Returns the TBF Header's flags (avoid duplication code for the setting functions below).
+    fn get_flags(&self) -> u32 {
+        match self {
+            TbfHeader::TbfHeaderV2(hd) => hd.base.flags,
+            TbfHeader::Padding(base) => base.flags,
+        }
+    }
+
+    /// Enables or disables the application by setting the enabled flag.
+    pub fn set_enabled(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
+        let flags: u32 = if enabled {
+            self.get_flags() | 0x00000001
+        } else {
+            self.get_flags() & !0x00000001
+        };
+        self.set_flags(flags, header)
+    }
+
+    /// Enable or disables erase confirmation by setting the sticky flag.
+    pub fn set_sticky(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
+        let flags: u32 = if enabled {
+            self.get_flags() | 0x00000002
+        } else {
+            self.get_flags() & !0x00000002
+        };
+        self.set_flags(flags, header)
+    }
+
+    /// Returns a 16 byte array with the serialized base header (little-endian format).
+    pub fn serialize(&self) -> Result<[u8; 16], TbfParseError> {
+        let base = match self {
+            TbfHeader::TbfHeaderV2(hd) => &hd.base,
+            TbfHeader::Padding(base) => base,
+        };
+        let mut bytes = [0u8; 16];
+        bytes[0..2].copy_from_slice(&base.version.to_le_bytes());
+        bytes[2..4].copy_from_slice(&base.header_size.to_le_bytes());
+        bytes[4..8].copy_from_slice(&base.total_size.to_le_bytes());
+        bytes[8..12].copy_from_slice(&base.flags.to_le_bytes());
+        bytes[12..16].copy_from_slice(&base.checksum.to_le_bytes());
+        Ok(bytes)
+    }
 }
