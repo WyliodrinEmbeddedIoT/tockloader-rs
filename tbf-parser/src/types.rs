@@ -1222,7 +1222,37 @@ impl TbfHeader {
         Ok(())
     }
 
-    /// Returns a 16 byte array with the serialized base header (little-endian format)
+    /// Returns the TBF Header's flags (avoid duplication code for the setting functions below).
+    fn get_flags(&self) -> u32 {
+        match self {
+            TbfHeader::TbfHeaderV2(hd) => hd.base.flags,
+            TbfHeader::Padding(base) => base.flags,
+        }
+    }
+
+    /// Enables or disables the application by setting the enabled flag.
+    pub fn set_enabled(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
+        let flags:u32 = if enabled {
+            self.get_flags() | 0x00000001
+        }
+        else {
+            self.get_flags() & !0x00000001
+        };
+        self.set_flags(flags, header)
+    }
+
+    /// Enable or disables erase confirmation by setting the sticky flag.
+    pub fn set_sticky(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
+        let flags:u32 = if enabled {
+            self.get_flags() | 0x00000002
+        }
+        else {
+            self.get_flags() & !0x00000002
+        };
+        self.set_flags(flags, header)
+    }
+
+    /// Returns a 16 byte array with the serialized base header (little-endian format).
     pub fn serialize(&self) -> Result<[u8; 16], TbfParseError> {
         let base = match self {
             TbfHeader::TbfHeaderV2(hd) => &hd.base,

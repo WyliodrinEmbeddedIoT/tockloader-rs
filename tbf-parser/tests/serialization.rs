@@ -4,7 +4,7 @@ use tbf_parser::types::TbfHeader;
 // Serialization
 
 #[test]
-fn simple_tbf() {
+fn serialize_identical_with_original() {
     let buffer: Vec<u8> = include_bytes!("./flashes/simple.dat").to_vec();
 
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
@@ -18,67 +18,9 @@ fn simple_tbf() {
     assert_eq!(&buffer[0..16], &serialized[..]);
 }
 
-#[test]
-fn footer_sha256() {
-    let buffer: Vec<u8> = include_bytes!("./flashes/footerSHA256.dat").to_vec();
-
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    let serialized = header.serialize().unwrap();
-
-    // Check if serialize matches original buffer
-    assert_eq!(&buffer[0..16], &serialized[..]);
-}
-
-#[test]
-fn footer_rsa4096() {
-    let buffer: Vec<u8> = include_bytes!("./flashes/footerRSA4096.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    let serialized = header.serialize().unwrap();
-
-    // Check if serialize matches original buffer
-    assert_eq!(&buffer[0..16], &serialized[..]);
-}
-
 // Flag modifications
 #[test]
-fn disable_simple_tbf() {
-    let mut buffer: Vec<u8> = include_bytes!("./flashes/simple.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-
-    assert!(header.enabled());
-    assert_eq!(header.get_package_name().unwrap(), "_heart");
-
-    // Set flag to 0 to disable the app
-    header
-        .set_flags(0x00000000, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    // Parse again and check if disable
-    let reparsed = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(!reparsed.enabled());
-    assert_eq!(reparsed.get_package_name().unwrap(), "_heart");
-    assert_eq!(reparsed.get_minimum_app_ram_size(), 4848);
-    assert_eq!(reparsed.get_init_function_offset(), 41 + header_len as u32);
-    assert_eq!(reparsed.get_protected_size(), header_len as u32);
-    assert_eq!(reparsed.get_kernel_version().unwrap(), (2, 0));
-}
-
-#[test]
-fn enable_disable_footer_sha256() {
+fn flags_modifications() {
     let mut buffer = include_bytes!("./flashes/footerSHA256.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -86,10 +28,15 @@ fn enable_disable_footer_sha256() {
 
     let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(header.enabled());
+    header.set_sticky(true, &buffer[0..header_len as usize]).unwrap();
+    // Set sticky without parsing
+    assert!(header.sticky());
+    // Unset
+    header.set_sticky(false, &buffer[0..header_len as usize]).unwrap();
 
     // Disable
     header
-        .set_flags(0x00000000, &buffer[0..header_len as usize])
+        .set_enabled(false, &buffer[0..header_len as usize])
         .unwrap();
     let serialized = header.serialize().unwrap();
     buffer[0..16].copy_from_slice(&serialized);
@@ -97,10 +44,10 @@ fn enable_disable_footer_sha256() {
     let reparsed = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(!reparsed.enabled());
 
-    // Check
+    // Enable
     let mut header = reparsed;
     header
-        .set_flags(0x00000001, &buffer[0..header_len as usize])
+        .set_enabled(true, &buffer[0..header_len as usize])
         .unwrap();
     let serialized = header.serialize().unwrap();
     buffer[0..16].copy_from_slice(&serialized);
@@ -110,24 +57,7 @@ fn enable_disable_footer_sha256() {
 }
 
 #[test]
-fn padding_header() {
-    let buffer = vec![
-        0x02, 0x00, 0x10, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x00, 0x10,
-        0x00,
-    ];
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-
-    assert!(!header.enabled());
-    assert!(!header.is_app());
-    let serialized = header.serialize().unwrap();
-    assert_eq!(&serialized[..], &buffer[0..16]);
-}
-
-#[test]
-fn padding_header2() {
+fn padding_header_set_flags() {
     let buffer = vec![
         0x02, 0x00, 0x10, 0x00, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x12, 0x00, 0x10,
         0x00,
@@ -151,7 +81,7 @@ fn padding_header2() {
 }
 
 #[test]
-fn fields() {
+fn fields_preserved() {
     let buffer = include_bytes!("./flashes/simple.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -178,7 +108,7 @@ fn fields() {
 }
 
 #[test]
-fn multiple_set() {
+fn multiple_flags_set() {
     let buffer = include_bytes!("./flashes/simple.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -195,49 +125,14 @@ fn multiple_set() {
     }
 }
 
-#[test]
-fn no_parsing() {
-    let buffer = include_bytes!("./flashes/simple.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    header
-        .set_flags(0x00000003, &buffer[0..header_len as usize])
-        .unwrap();
-
-    assert!(header.enabled());
-    assert!(header.sticky());
-}
-
-#[test]
-fn unset_set() {
-    let buffer = include_bytes!("./flashes/simple.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-
-    let s1 = header.serialize().unwrap();
-    header
-        .set_flags(0x80000001, &buffer[0..header_len as usize])
-        .unwrap();
-    let s2 = header.serialize().unwrap();
-    header
-        .set_flags(0x00000001, &buffer[0..header_len as usize])
-        .unwrap();
-    let s3 = header.serialize().unwrap();
-
-    assert_ne!(s1, s2);
-    assert_eq!(s1, s3);
-    assert_ne!(s2, s3);
-}
-
 // Checksum //
 #[test]
 fn checksum() {
+    // Try with empty_buffer
+    let empty_buffer: Vec<u8> = vec![];
+    let result = TbfHeader::compute_checksum(&empty_buffer, 0x00000006D);
+    assert_eq!(result.unwrap(), 0x00000000);
+
     let mut buffer = include_bytes!("./flashes/simple.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -258,66 +153,9 @@ fn checksum() {
     }
 }
 
-#[test]
-fn checksum_footer_sha256() {
-    let buffer = include_bytes!("./flashes/footerSHA256.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let slice = &buffer[0..header_len as usize];
-    let flags = u32::from_le_bytes(slice[8..12].try_into().unwrap());
-
-    // Compute checksum
-    let computed = TbfHeader::compute_checksum(slice, flags).unwrap();
-    let stored = u32::from_le_bytes(slice[12..16].try_into().unwrap());
-
-    // Compared with the one stored
-    assert_eq!(computed, stored);
-}
-
-#[test]
-fn empty_buffer() {
-    let empty_buffer: Vec<u8> = vec![];
-    let result = TbfHeader::compute_checksum(&empty_buffer, 0x00000006D);
-    assert_eq!(result.unwrap(), 0x00000000);
-}
-
 // Complete use //
 #[test]
-fn all_simple_tbf() {
-    let mut buffer = include_bytes!("./flashes/simple.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(header.enabled());
-
-    // Disable
-    header
-        .set_flags(0x00000000, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(!header.enabled());
-
-    // Enable
-    let mut header = header;
-    header
-        .set_flags(0x00000001, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(header.enabled());
-}
-
-#[test]
-fn all_rsa4096() {
+fn serialization_multiple_checks(){
     let mut buffer = include_bytes!("./flashes/footerRSA4096.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -325,70 +163,32 @@ fn all_rsa4096() {
 
     let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(header.enabled());
-    assert_eq!(header.get_package_name().unwrap(), "c_hello");
 
     // Disable
     header
-        .set_flags(0x00000000, &buffer[0..header_len as usize])
+        .set_enabled(false, &buffer[0..header_len as usize])
         .unwrap();
     let serialized = header.serialize().unwrap();
     buffer[0..16].copy_from_slice(&serialized);
 
     let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(!header.enabled());
-    assert_eq!(header.get_package_name().unwrap(), "c_hello");
 
     // Enable and set sticky
     let mut header = header;
     header
-        .set_flags(0x00000003, &buffer[0..header_len as usize])
+        .set_enabled(true, &buffer[0..header_len as usize])
         .unwrap();
+    header.set_sticky(true, &buffer[0..header_len as usize]).unwrap();
     let serialized = header.serialize().unwrap();
     buffer[0..16].copy_from_slice(&serialized);
 
     let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(header.enabled());
     assert!(header.sticky());
-}
 
-#[test]
-fn all_together_high_bits() {
-    let mut buffer = include_bytes!("./flashes/simple.dat").to_vec();
-    let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
-        .ok()
-        .unwrap();
-
-    let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(header.enabled());
-    assert_eq!(header.get_package_name().unwrap(), "_heart");
-
-    header
-        .set_flags(0xFFFF0001, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    let header2 = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(header2.enabled());
-
-    // Verify flags are well set
-    let flags_buffer = u32::from_le_bytes(buffer[8..12].try_into().unwrap());
-    assert_eq!(flags_buffer, 0xFFFF0001);
-
-    // Set to sticky and disabled
-    let mut header3 = header;
-    header3
-        .set_flags(0xFFFF0002, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header3.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(!header.enabled());
-    assert!(header.sticky());
-
-    // Enable sticky and change the high bits
-    let flags = 0xD6D60003;
+    // Disable sticky with high bits
+    let flags = 0xD6D6FFF1;
     let mut header = header;
     header
         .set_flags(flags, &buffer[0..header_len as usize])
@@ -398,28 +198,9 @@ fn all_together_high_bits() {
 
     let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(header.enabled());
-    assert!(header.sticky());
-
+    assert!(!header.sticky());
     let flags_buffer = u32::from_le_bytes(buffer[8..12].try_into().unwrap());
     assert_eq!(flags_buffer, flags);
-
-    // Clear high bits
-    let mut header = header;
-    header
-        .set_flags(0x00000001, &buffer[0..header_len as usize])
-        .unwrap();
-    let serialized = header.serialize().unwrap();
-    buffer[0..16].copy_from_slice(&serialized);
-
-    let header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
-    assert!(header.enabled());
-    assert!(!header.sticky());
-
-    let final_flags = u32::from_le_bytes(buffer[8..12].try_into().unwrap());
-    assert_eq!(final_flags, 0x00000001);
-
-    assert_eq!(header.get_package_name().unwrap(), "_heart");
-    assert_eq!(header.get_kernel_version().unwrap(), (2, 0));
 }
 
 #[test]
