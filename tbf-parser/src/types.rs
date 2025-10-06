@@ -1232,10 +1232,9 @@ impl TbfHeader {
 
     /// Enables or disables the application by setting the enabled flag.
     pub fn set_enabled(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
-        let flags:u32 = if enabled {
+        let flags: u32 = if enabled {
             self.get_flags() | 0x00000001
-        }
-        else {
+        } else {
             self.get_flags() & !0x00000001
         };
         self.set_flags(flags, header)
@@ -1243,10 +1242,9 @@ impl TbfHeader {
 
     /// Enable or disables erase confirmation by setting the sticky flag.
     pub fn set_sticky(&mut self, enabled: bool, header: &[u8]) -> Result<(), TbfParseError> {
-        let flags:u32 = if enabled {
+        let flags: u32 = if enabled {
             self.get_flags() | 0x00000002
-        }
-        else {
+        } else {
             self.get_flags() & !0x00000002
         };
         self.set_flags(flags, header)

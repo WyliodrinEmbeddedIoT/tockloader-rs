@@ -28,11 +28,15 @@ fn flags_modifications() {
 
     let mut header = parse_tbf_header(&buffer[0..header_len as usize], 2).unwrap();
     assert!(header.enabled());
-    header.set_sticky(true, &buffer[0..header_len as usize]).unwrap();
+    header
+        .set_sticky(true, &buffer[0..header_len as usize])
+        .unwrap();
     // Set sticky without parsing
     assert!(header.sticky());
     // Unset
-    header.set_sticky(false, &buffer[0..header_len as usize]).unwrap();
+    header
+        .set_sticky(false, &buffer[0..header_len as usize])
+        .unwrap();
 
     // Disable
     header
@@ -155,7 +159,7 @@ fn checksum() {
 
 // Complete use //
 #[test]
-fn serialization_multiple_checks(){
+fn serialization_multiple_checks() {
     let mut buffer = include_bytes!("./flashes/footerRSA4096.dat").to_vec();
     let (_, header_len, _) = parse_tbf_header_lengths(&buffer[0..8].try_into().unwrap())
         .ok()
@@ -179,7 +183,9 @@ fn serialization_multiple_checks(){
     header
         .set_enabled(true, &buffer[0..header_len as usize])
         .unwrap();
-    header.set_sticky(true, &buffer[0..header_len as usize]).unwrap();
+    header
+        .set_sticky(true, &buffer[0..header_len as usize])
+        .unwrap();
     let serialized = header.serialize().unwrap();
     buffer[0..16].copy_from_slice(&serialized);
 
