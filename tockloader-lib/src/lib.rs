@@ -17,6 +17,7 @@ use tokio_serial::SerialPortInfo;
 
 use crate::attributes::app_attributes::AppAttributes;
 use crate::attributes::general_attributes::GeneralAttributes;
+use crate::attributes::system_attributes::SystemAttributes;
 use crate::board_settings::BoardSettings;
 use crate::errors::*;
 use crate::tabs::tab::Tab;
@@ -63,4 +64,18 @@ pub trait CommandInstall {
 #[async_trait]
 pub trait CommandEraseApps {
     async fn erase_apps(&mut self, settings: &BoardSettings) -> Result<(), TockloaderError>;
+}
+
+#[async_trait]
+pub trait IOCommands: Send {
+    async fn read(&mut self, address: u64, size: usize) -> Result<Vec<u8>, TockloaderError>;
+
+    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError>;
+
+    async fn list_apps(
+        &mut self,
+        settings: &BoardSettings,
+    ) -> Result<Vec<AppAttributes>, TockloaderError>;
+
+    async fn read_system_attributes(&mut self) -> Result<SystemAttributes, TockloaderError>;
 }
