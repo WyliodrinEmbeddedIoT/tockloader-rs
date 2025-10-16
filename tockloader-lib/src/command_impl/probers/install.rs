@@ -82,7 +82,7 @@ impl CommandInstall for ProbeRSConnection {
         // multiple types of page sizes. Possibly make page size a board
         // setting.
         let page_size = 512;
-        let needs_padding = binary.len() % page_size != 0;
+        let needs_padding = !binary.len().is_multiple_of(page_size);
 
         if needs_padding {
             let remaining = page_size - (binary.len() % page_size);
