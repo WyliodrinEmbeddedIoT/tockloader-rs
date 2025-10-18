@@ -6,11 +6,11 @@ use crate::{
     board_settings::BoardSettings,
     connection::{Connection, ProbeRSConnection},
     errors::{InternalError, TockloaderError},
-    IOCommands,
+    IOCommands, IO,
 };
 
 #[async_trait]
-impl IOCommands for ProbeRSConnection {
+impl IO for ProbeRSConnection {
     async fn read(&mut self, address: u64, size: usize) -> Result<Vec<u8>, TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
@@ -38,8 +38,11 @@ impl IOCommands for ProbeRSConnection {
         loader.commit(session, options)?;
         Ok(())
     }
+}
 
-    async fn list_apps(
+#[async_trait]
+impl IOCommands for ProbeRSConnection {
+    async fn read_installed_apps(
         &mut self,
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError> {
@@ -60,7 +63,6 @@ impl IOCommands for ProbeRSConnection {
 
         let mut core = session.core(self.target_info.core)?;
 
-        // TODO(george-cosma): extract these informations without bootloader
         let system_attributes = SystemAttributes::read_system_attributes_probe(&mut core)?;
         Ok(system_attributes)
     }

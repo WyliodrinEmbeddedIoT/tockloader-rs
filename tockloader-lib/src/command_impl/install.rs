@@ -6,7 +6,7 @@ use crate::command_impl::reshuffle_apps::{create_pkt, reconstruct_app, reshuffle
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
-use crate::{CommandInstall, CommandList, IOCommands};
+use crate::{CommandInstall, CommandList, IO};
 
 #[async_trait]
 impl CommandInstall for TockloaderConnection {
@@ -30,7 +30,7 @@ impl CommandInstall for TockloaderConnection {
         for app in installed_apps.iter() {
             match app.installed {
                 true => {
-                    app_binaries.push(app.clone().read(self).await.unwrap());
+                    app_binaries.push(app.clone().read_binary(self).await.unwrap());
                 }
                 false => {
                     // TODO(adi): change this when TBF Filtering will get merged

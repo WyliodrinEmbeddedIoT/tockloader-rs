@@ -44,16 +44,12 @@ impl Tab {
                 let mut data = Vec::new();
 
                 archive_file.read_to_end(&mut data).map_err(TabError::IO)?;
-                // log::info!("read filename {:?}", file_name);
-
-                // log::info!("data? {:?}", data);
                 tbf_files.push(TbfFile {
                     filename: file_name.to_string(),
                     data,
                 });
             }
         }
-        // panic!();
 
         match metadata {
             Some(metadata) => Ok(Tab {
@@ -79,17 +75,9 @@ impl Tab {
         }
     }
 
-    // maybe change the parameter into board settings?
     pub fn extract_binary(&self, arch: &str) -> Result<Vec<u8>, TockloaderError> {
         for file in &self.tbf_files {
             if file.filename.starts_with(arch) {
-                // make an inquire that shows only relevant configurations?
-                // flash >= start_addr
-                // ram >= ???
-                // we need a ram parameter in board_settings
-                // if file.filename.starts_with("cortex-m4.0x00040000.0x20008000") { // here i set it manually for testing
-                // TODO(adi): this needs a better implementation for rust apps, the tbf is not selected correctly
-                // should we select the tab manually? with inquire?
                 return Ok(file.data.clone());
             }
         }

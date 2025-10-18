@@ -5,10 +5,10 @@ use crate::attributes::system_attributes::SystemAttributes;
 use crate::board_settings::BoardSettings;
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
-use crate::IOCommands;
+use crate::{IOCommands, IO};
 
 #[async_trait]
-impl IOCommands for TockloaderConnection {
+impl IO for TockloaderConnection {
     async fn read(&mut self, address: u64, size: usize) -> Result<Vec<u8>, TockloaderError> {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.read(address, size).await,
@@ -22,14 +22,17 @@ impl IOCommands for TockloaderConnection {
             TockloaderConnection::Serial(conn) => conn.write(address, pkt).await,
         }
     }
+}
 
-    async fn list_apps(
+#[async_trait]
+impl IOCommands for TockloaderConnection {
+    async fn read_installed_apps(
         &mut self,
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError> {
         match self {
-            TockloaderConnection::ProbeRS(conn) => conn.list_apps(settings).await,
-            TockloaderConnection::Serial(conn) => conn.list_apps(settings).await,
+            TockloaderConnection::ProbeRS(conn) => conn.read_installed_apps(settings).await,
+            TockloaderConnection::Serial(conn) => conn.read_installed_apps(settings).await,
         }
     }
 

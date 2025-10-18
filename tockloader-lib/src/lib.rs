@@ -67,12 +67,15 @@ pub trait CommandEraseApps {
 }
 
 #[async_trait]
-pub trait IOCommands: Send {
+pub trait IO: Send {
     async fn read(&mut self, address: u64, size: usize) -> Result<Vec<u8>, TockloaderError>;
 
     async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError>;
+}
 
-    async fn list_apps(
+#[async_trait]
+pub trait IOCommands: Send {
+    async fn read_installed_apps(
         &mut self,
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError>;

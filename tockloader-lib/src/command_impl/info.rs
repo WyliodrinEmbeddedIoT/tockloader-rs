@@ -12,7 +12,7 @@ impl CommandInfo for TockloaderConnection {
         &mut self,
         settings: &BoardSettings,
     ) -> Result<GeneralAttributes, TockloaderError> {
-        let installed_apps = self.list_apps(settings).await.unwrap();
+        let installed_apps = self.read_installed_apps(settings).await.unwrap();
         let system_atributes = self.read_system_attributes().await.unwrap();
         Ok(GeneralAttributes::new(system_atributes, installed_apps))
     }
