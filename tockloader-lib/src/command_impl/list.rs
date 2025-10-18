@@ -12,6 +12,6 @@ impl CommandList for TockloaderConnection {
         &mut self,
         settings: &BoardSettings,
     ) -> Result<Vec<AppAttributes>, TockloaderError> {
-        self.list_apps(settings).await
+        self.read_installed_apps(settings).await
     }
 }
