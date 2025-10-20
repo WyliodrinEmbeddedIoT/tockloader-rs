@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::attributes::app_attributes::AppAttributes;
 use crate::board_settings::BoardSettings;
-use crate::command_impl::reshuffle_apps::{create_pkt, reconstruct_app, reshuffle_apps};
+use crate::command_impl::reshuffle_apps::{create_pkt, reshuffle_apps};
 use crate::connection::TockloaderConnection;
 use crate::errors::TockloaderError;
 use crate::tabs::tab::Tab;
@@ -15,10 +15,8 @@ impl CommandInstall for TockloaderConnection {
         settings: &BoardSettings,
         tab: Tab,
     ) -> Result<(), TockloaderError> {
-        // get the already installed apps
         let mut installed_apps: Vec<AppAttributes> = self.list(settings).await.unwrap();
 
-        // reconstruct the new app
         if let Some(mut app) = reconstruct_app(Some(&tab), settings) {
             app.index = installed_apps.len() as u8;
             installed_apps.push(app.clone());

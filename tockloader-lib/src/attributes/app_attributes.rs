@@ -21,25 +21,8 @@ use crate::IO;
 #[derive(Debug, Clone)]
 pub struct AppAttributes {
     pub address: u64,
-    pub size: u32,
-    pub index: u8,
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
-    pub installed: bool,
-    pub is_padding: bool,
-}
-
-impl std::fmt::Display for AppAttributes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}. {} - start: {:#x}, size: {}",
-            self.index,
-            self.tbf_header.get_package_name().unwrap_or(""),
-            self.address,
-            self.size
-        )
-    }
 }
 
 /// This structure represents a footer of a Tock application. Currently, footers
@@ -62,20 +45,13 @@ impl TbfFooter {
 impl AppAttributes {
     pub(crate) fn new(
         address: u64,
-        size: u32,
-        index: u8,
         header_data: TbfHeader,
         footers_data: Vec<TbfFooter>,
-        installed: bool,
     ) -> AppAttributes {
         AppAttributes {
             address,
-            size,
-            index,
             tbf_header: header_data,
             tbf_footers: footers_data,
-            installed,
-            is_padding: false,
         }
     }
 
@@ -178,10 +154,9 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes =
-                AppAttributes::new(appaddr, total_size, apps_counter, header, footers, true);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
-            apps_details.insert(apps_counter.into(), details);
+            apps_details.insert(apps_counter, details);
             apps_counter += 1;
             appaddr += total_size as u64;
         }
@@ -316,10 +291,9 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes =
-                AppAttributes::new(appaddr, total_size, apps_counter, header, footers, true);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
-            apps_details.insert(apps_counter.into(), details);
+            apps_details.insert(apps_counter, details);
             apps_counter += 1;
             appaddr += total_size as u64;
         }
