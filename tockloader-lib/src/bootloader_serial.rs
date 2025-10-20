@@ -5,7 +5,7 @@
 // The "X" commands are for external flash
 
 use crate::errors::{self, InternalError, TockError};
-use bytes::BytesMut;
+use bytes::{BufMut, BytesMut};
 use errors::TockloaderError;
 use std::time::Duration;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -17,7 +17,7 @@ pub const SYNC_MESSAGE: [u8; 3] = [0x00, 0xFC, 0x05];
 // "This was chosen as it is infrequent in .bin files" - immesys
 pub const ESCAPE_CHAR: u8 = 0xFC;
 
-pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
+pub const DEFAULT_TIMEOUT: Duration = Duration::from_millis(5000);
 
 #[allow(dead_code)]
 pub enum Command {
@@ -217,7 +217,7 @@ pub async fn issue_command(
     }
 
     if response_len != 0 {
-        let input = read_bytes(port, response_len, DEFAULT_TIMEOUT).await?;
+        let mut input = read_bytes(port, response_len, DEFAULT_TIMEOUT).await?;
         let mut result = Vec::with_capacity(input.len());
 
         // De-escape and add array of read in the bytes
@@ -227,6 +227,7 @@ pub async fn issue_command(
         while i < input.len() {
             if i + 1 < input.len() && input[i] == ESCAPE_CHAR && input[i + 1] == ESCAPE_CHAR {
                 // Found consecutive ESCAPE_CHAR bytes, add only one
+                input.put(read_bytes(port, 1, DEFAULT_TIMEOUT).await?);
                 result.push(ESCAPE_CHAR);
                 i += 2; // Skip both bytes
             } else {
