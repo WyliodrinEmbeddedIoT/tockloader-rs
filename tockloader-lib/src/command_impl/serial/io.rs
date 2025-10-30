@@ -4,7 +4,6 @@ use crate::{
     attributes::{app_attributes::AppAttributes, system_attributes::SystemAttributes},
     board_settings::BoardSettings,
     bootloader_serial::{issue_command, ping_bootloader_and_wait_for_response, Command, Response},
-    command_impl::reshuffle_apps::PAGE_SIZE,
     connection::{Connection, SerialConnection},
     errors::{InternalError, TockloaderError},
     IOCommands, IO,
@@ -38,24 +37,30 @@ impl IO for SerialConnection {
         Ok(appdata)
     }
 
-    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+    async fn write(
+        &mut self,
+        address: u64,
+        pkt: Vec<u8>,
+        settings: &BoardSettings,
+    ) -> Result<(), TockloaderError> {
         let stream = self.stream.as_mut().expect("Board must be open");
         let mut binary = pkt.clone();
 
-        if !binary.len().is_multiple_of(PAGE_SIZE as usize) {
+        if !binary.len().is_multiple_of(settings.page_size as usize) {
             binary.extend(vec![
                 0u8;
-                PAGE_SIZE as usize - (binary.len() % PAGE_SIZE as usize)
+                settings.page_size as usize
+                    - (binary.len() % settings.page_size as usize)
             ]);
         }
 
-        for page_number in 0..(binary.len() / PAGE_SIZE as usize) {
-            let mut pkt = (address as u32 + page_number as u32 * PAGE_SIZE)
+        for page_number in 0..(binary.len() / settings.page_size as usize) {
+            let mut pkt = (address as u32 + page_number as u32 * settings.page_size as u32)
                 .to_le_bytes()
                 .to_vec();
             pkt.append(
-                &mut binary
-                    [(page_number * PAGE_SIZE as usize)..((page_number + 1) * PAGE_SIZE as usize)]
+                &mut binary[(page_number * settings.page_size as usize)
+                    ..((page_number + 1) * settings.page_size as usize)]
                     .to_vec(),
             );
             let _ = issue_command(stream, Command::WritePage, pkt, true, 0, Response::OK).await?;

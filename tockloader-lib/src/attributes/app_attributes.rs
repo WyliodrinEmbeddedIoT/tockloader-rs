@@ -11,7 +11,6 @@ use tokio_serial::SerialStream;
 
 use crate::bootloader_serial::{issue_command, Command, Response};
 use crate::errors::{TockError, TockloaderError};
-use crate::IO;
 
 /// This structure contains all relevant information about a tock application.
 ///
@@ -298,10 +297,5 @@ impl AppAttributes {
             appaddr += total_size as u64;
         }
         Ok(apps_details)
-    }
-
-    /// This function reads the full binary of a given app
-    pub async fn read_binary(&mut self, conn: &mut dyn IO) -> Result<Vec<u8>, TockloaderError> {
-        conn.read(self.address, self.size as usize).await
     }
 }

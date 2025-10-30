@@ -23,7 +23,12 @@ impl IO for ProbeRSConnection {
         Ok(appdata)
     }
 
-    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+    async fn write(
+        &mut self,
+        address: u64,
+        pkt: Vec<u8>,
+        _settings: &BoardSettings,
+    ) -> Result<(), TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
         }
