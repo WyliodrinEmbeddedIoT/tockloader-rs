@@ -75,9 +75,9 @@ impl Tab {
         }
     }
 
-    pub fn extract_binary(&self, arch: &str) -> Result<Vec<u8>, TockloaderError> {
+    pub fn extract_binary(&self, arch: String) -> Result<Vec<u8>, TockloaderError> {
         for file in &self.tbf_files {
-            if file.filename.starts_with(arch) {
+            if file.filename.starts_with(&arch) {
                 return Ok(file.data.clone());
             }
         }

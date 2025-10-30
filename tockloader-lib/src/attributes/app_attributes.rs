@@ -17,7 +17,7 @@ use crate::errors::{TockError, TockloaderError};
 /// All data is stored either within [TbfHeader]s, or [TbfFooter]s.
 ///
 /// See also <https://book.tockos.org/doc/tock_binary_format>
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct AppAttributes {
     pub address: u64,
     pub tbf_header: TbfHeader,

@@ -18,14 +18,20 @@ impl CommandInstall for TockloaderConnection {
         let app_attributes_list: Vec<AppAttributes> = self.list(settings).await.unwrap();
         let mut tock_app_list = app_attributes_list
             .iter()
-            .map(|app| TockApp::from_app_attributes(app, settings))
+            .map(TockApp::from_app_attributes)
             .collect::<Vec<TockApp>>();
 
         // obtain the binaries in a vector
         let mut app_binaries: Vec<Vec<u8>> = Vec::new();
 
-        for app in tock_app_list.iter() {
-            app_binaries.push(app.clone().read_binary(self).await.unwrap())
+        let mut address = settings.start_address;
+        for app in app_attributes_list.iter() {
+            app_binaries.push(
+                self.read(address, app.tbf_header.total_size() as usize)
+                    .await
+                    .unwrap(),
+            );
+            address += app.tbf_header.total_size() as u64;
         }
 
         let mut app = TockApp::from_tab(&tab, settings).unwrap();
@@ -33,10 +39,7 @@ impl CommandInstall for TockloaderConnection {
         app.replace_idx(tock_app_list.len());
         tock_app_list.push(app.clone());
 
-        app_binaries.push(
-            tab.extract_binary(settings.arch.as_ref().unwrap().as_str())
-                .unwrap(),
-        );
+        app_binaries.push(tab.extract_binary(settings.arch.clone().unwrap()).unwrap());
 
         let configuration = reshuffle_apps(settings, tock_app_list).unwrap();
 

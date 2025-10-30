@@ -1,12 +1,10 @@
 use itertools::Itertools;
 use log::warn;
 
-use crate::attributes::app_attributes::{AppAttributes, TbfFooter};
+use crate::attributes::app_attributes::AppAttributes;
 use crate::board_settings::BoardSettings;
-use crate::errors::{InternalError, TockloaderError};
 use crate::tabs::tab::Tab;
-use crate::IO;
-use tbf_parser::parse::{parse_tbf_footer, parse_tbf_header, parse_tbf_header_lengths};
+use tbf_parser::parse::{parse_tbf_header, parse_tbf_header_lengths};
 
 const ALIGNMENT: u64 = 1024;
 
@@ -19,14 +17,12 @@ pub enum TockApp {
 #[derive(Clone)]
 pub struct FlexibleApp {
     idx: Option<usize>,
-    board_address: Option<u64>, // None if not installed
     size: u64,
 }
 
 #[derive(Clone)]
 pub struct FixedApp {
     idx: Option<usize>,
-    board_address: Option<u64>, // None if not installed
     candidate_addresses: Vec<u64>,
     size: u64,
 }
@@ -39,65 +35,28 @@ impl TockApp {
         }
     }
 
-    // useless??
-    fn get_idx(&self) -> Option<usize> {
-        match self {
-            TockApp::Flexible(flexible_app) => flexible_app.idx,
-            TockApp::Fixed(fixed_app) => fixed_app.idx,
-        }
-    }
-
-    // useless?
-    fn get_size(&self) -> u64 {
-        match self {
-            TockApp::Flexible(flexible_app) => flexible_app.size,
-            TockApp::Fixed(fixed_app) => fixed_app.size,
-        }
-    }
-
-    // useless?
-    fn as_index(&self, install_address: u64) -> Index {
-        Index {
-            idx: self.get_idx(),
-            address: install_address,
-            size: self.get_size(),
-        }
-    }
-
-    pub fn from_app_attributes(
-        app_attributes: &AppAttributes,
-        settings: &BoardSettings,
-    ) -> TockApp {
+    pub fn from_app_attributes(app_attributes: &AppAttributes) -> TockApp {
         if let Some(address) = app_attributes.tbf_header.get_fixed_address_flash() {
-            return TockApp::Fixed(FixedApp {
+            TockApp::Fixed(FixedApp {
                 idx: None,
-                board_address: None,
                 candidate_addresses: vec![address as u64], // (adi): change this when tbf selector gets merged
                 size: app_attributes.tbf_header.total_size() as u64,
-            });
+            })
         } else {
-            let address = settings.start_address;
-            return TockApp::Flexible(FlexibleApp {
+            TockApp::Flexible(FlexibleApp {
                 idx: None,
-                board_address: Some(address),
                 size: app_attributes.tbf_header.total_size() as u64,
-            });
+            })
         }
     }
 
+    /// This function returns an instance of TockApp
     pub fn from_tab(tab: &Tab, settings: &BoardSettings) -> Option<TockApp> {
-        //    tab: Option<&Tab>, settings: &BoardSettings) -> Option<AppAttributes>
-        let arch = settings
-            .arch
-            .as_ref()
-            .ok_or(InternalError::MisconfiguredBoardSettings(
-                "architechture".to_owned(),
-            ))
-            .unwrap();
-
         // extract the binary
         // this should be changed to accomodate candidate_addresses
-        let binary = tab.extract_binary(arch).expect("invalid arch");
+        let binary = tab
+            .extract_binary(settings.arch.clone().unwrap())
+            .expect("invalid arch");
 
         // extract relevant data from the header
         let (tbf_version, header_len, total_size) = match parse_tbf_header_lengths(
@@ -114,34 +73,6 @@ impl TockApp {
         // turn the buffer slice into a TbfHeader instance
         let header =
             parse_tbf_header(&binary[0..header_len as usize], tbf_version).expect("invalid header");
-        let binary_end_offset = header.get_binary_end();
-
-        // obtain the footers
-        let mut footers: Vec<TbfFooter> = vec![];
-        let mut footer_offset = binary_end_offset;
-        let mut footer_number = 0;
-
-        while footer_offset < total_size {
-            let mut appfooter: Vec<u8> = binary[footer_offset as usize..].to_vec();
-            let byte1 = *appfooter.get(2).unwrap();
-            let byte2 = *appfooter.get(3).unwrap();
-            let expected_size = u16::from_le_bytes([byte1, byte2]) + 4;
-            // insert or remove until we have expected size?
-            // insert
-            while appfooter.len() < expected_size as usize {
-                appfooter.push(0x0u8);
-            }
-            // delete
-            while appfooter.len() > expected_size as usize {
-                appfooter.pop();
-            }
-            // (these might be useless)
-
-            let footer_info = parse_tbf_footer(&appfooter).expect("Invalid footer!");
-            footers.insert(footer_number, TbfFooter::new(footer_info.0, footer_info.1));
-            footer_number += 1;
-            footer_offset += footer_info.1 + 4;
-        }
 
         if let Some(addr) = header.get_fixed_address_flash() {
             if addr < settings.start_address as u32 {
@@ -154,36 +85,16 @@ impl TockApp {
             // turns out that fixed address is a loosely-used term, address has to be aligned down to a multiple of 1024 bytes
             let address = align_down(addr as u64);
 
-            return Some(TockApp::Fixed(FixedApp {
+            Some(TockApp::Fixed(FixedApp {
                 idx: None,
-                board_address: None,
                 candidate_addresses: vec![address], // (adi): change this when tbf selector gets merged
                 size: total_size as u64,
-            }));
+            }))
         } else {
-            let address = settings.start_address;
-            return Some(TockApp::Flexible(FlexibleApp {
+            Some(TockApp::Flexible(FlexibleApp {
                 idx: None,
-                board_address: Some(address),
                 size: total_size as u64,
-            }));
-        }
-    }
-
-    /// This function reads the full binary of a given app
-    pub async fn read_binary(&mut self, conn: &mut dyn IO) -> Result<Vec<u8>, TockloaderError> {
-        match self {
-            TockApp::Flexible(flexible_app) => {
-                conn.read(
-                    flexible_app.board_address.unwrap(),
-                    flexible_app.size as usize,
-                )
-                .await
-            }
-            TockApp::Fixed(fixed_app) => {
-                conn.read(fixed_app.board_address.unwrap(), fixed_app.size as usize)
-                    .await
-            }
+            }))
         }
     }
 }
@@ -208,20 +119,12 @@ impl FlexibleApp {
     }
 }
 
-// a vec of these is returned by reshuffleapps
 #[derive(Debug, Clone)]
 pub struct Index {
     idx: Option<usize>,
     address: u64,
     size: u64,
 }
-
-// c or rust (fixed address?)
-// size
-// if rust
-//      flash_address(es) to install or currently installed
-// if c
-//      flash_address currently installed
 
 pub fn reshuffle_apps(
     settings: &BoardSettings,
@@ -230,7 +133,7 @@ pub fn reshuffle_apps(
     // On the first pass, we must assign every app its original index, so we can
     // keep track of it.
     for (idx, app) in installed_apps.iter_mut().enumerate() {
-        if let Some(_) = app.replace_idx(idx) {
+        if app.replace_idx(idx).is_some() {
             warn!("Encountered existing index in TockApp at the start of reorder_apps.");
         }
     }
@@ -246,7 +149,7 @@ pub fn reshuffle_apps(
     }
 
     for app in &mut rust_apps {
-        if app.candidate_addresses.len() == 0 {
+        if app.candidate_addresses.is_empty() {
             warn!("Can not reorder apps since fixed application has no candidate addresses!");
             return None;
         }
@@ -272,120 +175,117 @@ pub fn reshuffle_apps(
     let mut min_padding = usize::MAX;
     let mut saved_configuration: Vec<Index> = Vec::new();
 
-    if c_apps.len() > 9 && !rust_apps.is_empty() {
-        warn!(
-            "Refusing to compute order if more than 9 c-based apps are installed \
-            with rust-based apps in the mix! Too computationally heavy!"
-        );
-        return None;
-    }
+    for _ in 0..100_000 {
+        // use just 100k permutations, or else we'll be here for a while
+        if let Some(order) = permutations.next() {
+            let mut total_padding: usize = 0;
+            let mut permutation_index: usize = 0;
+            let mut rust_index: usize = 0;
+            let mut reordered_apps: Vec<Index> = Vec::new();
 
-    while let Some(order) = permutations.next() {
-        let mut total_padding: usize = 0;
-        let mut permutation_index: usize = 0;
-        let mut rust_index: usize = 0;
-        let mut reordered_apps: Vec<Index> = Vec::new();
+            loop {
+                let insert_c: bool; // every iteration will insert an app, or break if there are none left
 
-        loop {
-            let insert_c: bool; // every iteration will insert an app, or break if there are none left
+                // start either where the last app ends, or at start address if there are no apps
+                let address = reordered_apps
+                    .last()
+                    .map_or(settings.start_address, |app| app.address + app.size);
 
-            // start either where the last app ends, or at start address if there are no apps
-            let address = reordered_apps
-                .last()
-                .map_or(settings.start_address, |app| app.address + app.size);
-
-            if let Some(_) = order.get(permutation_index) {
-                // we have a C app
-                if let Some(_) = rust_apps.get(rust_index) {
-                    // we also have a rust app, insert C app only if it fits
-                    insert_c = c_apps[order[permutation_index]].size
-                        <= rust_apps[rust_index].candidate_addresses[0] - address;
+                if order.get(permutation_index).is_some() {
+                    // we have a C app
+                    if rust_apps.get(rust_index).is_some() {
+                        // we also have a rust app, insert C app only if it fits
+                        insert_c = c_apps[order[permutation_index]].size
+                            <= rust_apps[rust_index].candidate_addresses[0] - address;
+                    } else {
+                        // we have only a C app, insert it accordingly
+                        insert_c = true;
+                    }
                 } else {
-                    // we have only a C app, insert it accordingly
-                    insert_c = true;
+                    // we don't have a c app
+                    if rust_apps.get(rust_index).is_some() {
+                        // we have a rust app, insert it
+                        insert_c = false;
+                    } else {
+                        // we don't have any app, break?
+                        break;
+                    }
                 }
-            } else {
-                // we don't have a c app
-                if let Some(_) = rust_apps.get(rust_index) {
-                    // we have a rust app, insert it
-                    insert_c = false;
+
+                let mut start_address = reordered_apps
+                    .last()
+                    .map_or(settings.start_address, |app| app.address + app.size);
+
+                let needed_padding = if insert_c {
+                    if !start_address.is_multiple_of(settings.page_size) {
+                        // c app needs to be inserted at a multiple of page_size
+                        settings.page_size - start_address % settings.page_size
+                    } else {
+                        0
+                    }
                 } else {
-                    // we don't have any app, break?
+                    if rust_apps[rust_index].candidate_addresses[0] < start_address {
+                        // the program wants to insert a rust app where another rust app already exists
+                        warn!(
+                            "Can't insert the rust app, space is already occupied by another rust app"
+                        );
+                        return None;
+                    }
+                    // rust app needs to be inserted at a fixed address, pad until there
+                    rust_apps[rust_index].candidate_addresses[0] - start_address
+                };
+
+                if needed_padding > 0 {
+                    // insert a padding
+                    total_padding += needed_padding as usize;
+                    reordered_apps.push(Index {
+                        idx: None,
+                        address: start_address,
+                        size: needed_padding,
+                    });
+
+                    start_address += needed_padding as u64;
+                }
+
+                if insert_c {
+                    // insert the c app, also change its address
+                    let c_app = c_apps[order[permutation_index]].as_index(start_address);
+                    if c_app.idx.is_none() {
+                        panic!("C app has no index assigned!");
+                    }
+
+                    reordered_apps.push(c_app);
+                    permutation_index += 1;
+                } else {
+                    // insert the rust app, don't change its address because it is fixed
+                    let rust_app = rust_apps[rust_index]
+                        .as_index(rust_apps[rust_index].candidate_addresses[0]);
+                    if rust_app.idx.is_none() {
+                        panic!("Rust app has no index assigned!");
+                    }
+
+                    reordered_apps.push(rust_app);
+                    rust_index += 1;
+                }
+            }
+
+            // find the configuration that uses the minimum padding
+            if total_padding < min_padding {
+                min_padding = total_padding;
+                saved_configuration = reordered_apps.clone();
+                if min_padding == 0 {
                     break;
                 }
             }
-
-            let mut start_address = reordered_apps
-                .last()
-                .map_or(settings.start_address, |app| app.address + app.size);
-
-            let needed_padding = if insert_c {
-                if !start_address.is_multiple_of(settings.page_size) {
-                    // c app needs to be inserted at a multiple of page_size
-                    settings.page_size - start_address % settings.page_size
-                } else {
-                    0
-                }
-            } else {
-                if rust_apps[rust_index].candidate_addresses[0] < start_address {
-                    // the program wants to insert a rust app where another rust app already exists
-                    warn!(
-                        "Can't insert the rust app, space is already occupied by another rust app"
-                    );
-                    return None;
-                }
-                // rust app needs to be inserted at a fixed address, pad until there
-                rust_apps[rust_index].candidate_addresses[0] - start_address
-            };
-
-            if needed_padding > 0 {
-                // insert a padding
-                total_padding += needed_padding as usize;
-                reordered_apps.push(Index {
-                    idx: None,
-                    address: start_address,
-                    size: needed_padding,
-                });
-
-                start_address += needed_padding as u64;
-            }
-
-            if insert_c {
-                // insert the c app, also change its address
-                let c_app = c_apps[order[permutation_index]].as_index(start_address);
-                if c_app.idx.is_none() {
-                    panic!("C app has no index assigned!");
-                }
-
-                reordered_apps.push(c_app);
-                permutation_index += 1;
-            } else {
-                // insert the rust app, don't change its address because it is fixed
-                let rust_app =
-                    rust_apps[rust_index].as_index(rust_apps[rust_index].candidate_addresses[0]);
-                if rust_app.idx.is_none() {
-                    panic!("Rust app has no index assigned!");
-                }
-
-                reordered_apps.push(rust_app);
-                rust_index += 1;
-            }
-        }
-
-        // find the configuration that uses the minimum padding
-        if total_padding < min_padding {
-            min_padding = total_padding;
-            saved_configuration = reordered_apps.clone();
-            if min_padding == 0 {
-                break;
-            }
+        } else {
+            break;
         }
     }
 
     Some(saved_configuration)
 }
 
-// this return only the binary for a padding
+/// This function returns the binary for a padding
 fn create_padding(size: u32) -> Vec<u8> {
     let mut buf: Vec<u8> = Vec::new();
     buf.extend_from_slice(&u16::to_le_bytes(2u16)); // tbf version 2
@@ -403,11 +303,12 @@ fn create_padding(size: u32) -> Vec<u8> {
     buf
 }
 
-// this function takes a rust app's fixed address and aligns it down to ALIGNMENT (1024 currently)
+/// This function takes a rust app's fixed address and aligns it down to ALIGNMENT (1024 currently)
 fn align_down(address: u64) -> u64 {
     address - address % ALIGNMENT
 }
 
+/// This function creates the full binary that will be written
 pub fn create_pkt(configuration: Vec<Index>, mut app_binaries: Vec<Vec<u8>>) -> Vec<u8> {
     let mut pkt: Vec<u8> = Vec::new();
     for item in configuration.iter() {
