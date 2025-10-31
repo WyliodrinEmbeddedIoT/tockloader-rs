@@ -866,6 +866,7 @@ pub struct TbfHeaderV2 {
 // Clippy suggests we box TbfHeaderV2. We can't really do that, since
 // we are runnning under no_std, and I don't think it's that big of a issue.
 #[allow(clippy::large_enum_variant)]
+#[derive(Clone)]
 pub enum TbfHeader {
     TbfHeaderV2(TbfHeaderV2),
     Padding(TbfHeaderV2Base),

@@ -19,6 +19,7 @@ use crate::errors::{TockError, TockloaderError};
 /// See also <https://book.tockos.org/doc/tock_binary_format>
 #[derive(Debug)]
 pub struct AppAttributes {
+    pub address: u64,
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
 }
@@ -26,7 +27,7 @@ pub struct AppAttributes {
 /// This structure represents a footer of a Tock application. Currently, footers
 /// only contain credentials, which are used to verify the integrity of the
 /// application.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TbfFooter {
     pub credentials: TbfFooterV2Credentials,
     pub size: u32,
@@ -41,8 +42,13 @@ impl TbfFooter {
 // TODO(george-cosma): Could take advantages of the trait rework
 
 impl AppAttributes {
-    pub(crate) fn new(header_data: TbfHeader, footers_data: Vec<TbfFooter>) -> AppAttributes {
+    pub(crate) fn new(
+        address: u64,
+        header_data: TbfHeader,
+        footers_data: Vec<TbfFooter>,
+    ) -> AppAttributes {
         AppAttributes {
+            address,
             tbf_header: header_data,
             tbf_footers: footers_data,
         }
@@ -117,13 +123,10 @@ impl AppAttributes {
             // crash the process.
             let binary_end_offset = header.get_binary_end();
 
-            match &header {
-                TbfHeader::TbfHeaderV2(_hd) => {}
-                _ => {
-                    appaddr += total_size as u64;
-                    continue;
-                }
-            };
+            if !header.is_app() {
+                appaddr += total_size as u64;
+                continue;
+            }
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -137,9 +140,9 @@ impl AppAttributes {
                 // binary_end_offset`) , even if we overread.
                 let mut appfooter =
                     vec![0u8; (total_footers_size - (footer_offset - binary_end_offset)) as usize];
-
+                // log::info!("footer init {:?}", appfooter);
                 board_core.read(appaddr + footer_offset as u64, &mut appfooter)?;
-
+                // log::info!("footer read {:?}", appfooter);
                 let footer_info =
                     parse_tbf_footer(&appfooter).map_err(TockError::InvalidAppTbfHeader)?;
 
@@ -150,7 +153,7 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes = AppAttributes::new(header, footers);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
             apps_details.insert(apps_counter, details);
             apps_counter += 1;
@@ -240,15 +243,13 @@ impl AppAttributes {
             log::debug!("App #{apps_counter}: Header data: {header_data:?}");
             let header = parse_tbf_header(&header_data, tbf_version)
                 .map_err(TockError::InvalidAppTbfHeader)?;
+
             let binary_end_offset = header.get_binary_end();
 
-            match &header {
-                TbfHeader::TbfHeaderV2(_hd) => {}
-                _ => {
-                    appaddr += total_size as u64;
-                    continue;
-                }
-            };
+            if !header.is_app() {
+                appaddr += total_size as u64;
+                continue;
+            }
 
             let mut footers: Vec<TbfFooter> = vec![];
             let total_footers_size = total_size - binary_end_offset;
@@ -289,7 +290,7 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes = AppAttributes::new(header, footers);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
             apps_details.insert(apps_counter, details);
             apps_counter += 1;
