@@ -36,10 +36,10 @@ impl IO for SerialConnection {
         Ok(appdata)
     }
 
-    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+    async fn write(&mut self, address: u64, pkt: &[u8]) -> Result<(), TockloaderError> {
         let settings = self.get_settings();
         let stream = self.stream.as_mut().expect("Board must be open");
-        let mut binary = pkt.clone();
+        let mut binary = pkt.to_vec();
 
         if !binary.len().is_multiple_of(settings.page_size as usize) {
             binary.extend(vec![

@@ -22,14 +22,14 @@ impl IO for ProbeRSConnection {
         Ok(appdata)
     }
 
-    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+    async fn write(&mut self, address: u64, pkt: &[u8]) -> Result<(), TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
         }
         let session = self.session.as_mut().expect("Board must be open");
         let mut loader = session.target().flash_loader();
 
-        loader.add_data(address, &pkt)?;
+        loader.add_data(address, pkt)?;
 
         let mut options = DownloadOptions::default();
         options.keep_unwritten_bytes = true;

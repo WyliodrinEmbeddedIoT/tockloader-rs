@@ -7,7 +7,7 @@ use crate::{CommandEraseApps, IO};
 #[async_trait]
 impl CommandEraseApps for TockloaderConnection {
     async fn erase_apps(&mut self) -> Result<(), TockloaderError> {
-        self.write(self.get_settings().start_address, vec![0u8])
+        self.write(self.get_settings().start_address, &[0u8])
             .await
     }
 }

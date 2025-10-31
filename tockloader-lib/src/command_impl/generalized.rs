@@ -15,7 +15,7 @@ impl IO for TockloaderConnection {
         }
     }
 
-    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+    async fn write(&mut self, address: u64, pkt: &[u8]) -> Result<(), TockloaderError> {
         match self {
             TockloaderConnection::ProbeRS(conn) => conn.write(address, pkt).await,
             TockloaderConnection::Serial(conn) => conn.write(address, pkt).await,
