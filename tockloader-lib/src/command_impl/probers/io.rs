@@ -3,7 +3,6 @@ use probe_rs::{flashing::DownloadOptions, MemoryInterface};
 
 use crate::{
     attributes::{app_attributes::AppAttributes, system_attributes::SystemAttributes},
-    board_settings::BoardSettings,
     connection::{Connection, ProbeRSConnection},
     errors::{InternalError, TockloaderError},
     IOCommands, IO,
@@ -23,12 +22,7 @@ impl IO for ProbeRSConnection {
         Ok(appdata)
     }
 
-    async fn write(
-        &mut self,
-        address: u64,
-        pkt: Vec<u8>,
-        _settings: &BoardSettings,
-    ) -> Result<(), TockloaderError> {
+    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
         }
@@ -47,13 +41,11 @@ impl IO for ProbeRSConnection {
 
 #[async_trait]
 impl IOCommands for ProbeRSConnection {
-    async fn read_installed_apps(
-        &mut self,
-        settings: &BoardSettings,
-    ) -> Result<Vec<AppAttributes>, TockloaderError> {
+    async fn read_installed_apps(&mut self) -> Result<Vec<AppAttributes>, TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
         }
+        let settings = self.get_settings();
         let session = self.session.as_mut().expect("Board must be open");
         let mut core = session.core(self.target_info.core)?;
 

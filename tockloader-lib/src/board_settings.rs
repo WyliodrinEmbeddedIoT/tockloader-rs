@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct BoardSettings {
     pub arch: Option<String>,
     pub start_address: u64,

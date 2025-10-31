@@ -2,7 +2,6 @@ use async_trait::async_trait;
 
 use crate::{
     attributes::{app_attributes::AppAttributes, system_attributes::SystemAttributes},
-    board_settings::BoardSettings,
     bootloader_serial::{issue_command, ping_bootloader_and_wait_for_response, Command, Response},
     connection::{Connection, SerialConnection},
     errors::{InternalError, TockloaderError},
@@ -37,12 +36,8 @@ impl IO for SerialConnection {
         Ok(appdata)
     }
 
-    async fn write(
-        &mut self,
-        address: u64,
-        pkt: Vec<u8>,
-        settings: &BoardSettings,
-    ) -> Result<(), TockloaderError> {
+    async fn write(&mut self, address: u64, pkt: Vec<u8>) -> Result<(), TockloaderError> {
+        let settings = self.get_settings();
         let stream = self.stream.as_mut().expect("Board must be open");
         let mut binary = pkt.clone();
 
@@ -77,13 +72,11 @@ impl IO for SerialConnection {
 
 #[async_trait]
 impl IOCommands for SerialConnection {
-    async fn read_installed_apps(
-        &mut self,
-        settings: &BoardSettings,
-    ) -> Result<Vec<AppAttributes>, TockloaderError> {
+    async fn read_installed_apps(&mut self) -> Result<Vec<AppAttributes>, TockloaderError> {
         if !self.is_open() {
             return Err(InternalError::ConnectionNotOpen.into());
         }
+        let settings = self.get_settings();
         let stream = self.stream.as_mut().expect("Board must be open");
 
         ping_bootloader_and_wait_for_response(stream).await?;
