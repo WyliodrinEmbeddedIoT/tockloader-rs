@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b57ebaee.js";
+            window.path_to_searchindex_js = "../searchindex-87296e12.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-647925fd.js"></script>
@@ -174,7 +174,94 @@
 
                 <div id="mdbook-content" class="content">
                     <main>
-                        
+                        <h1 id="install"><a class="header" href="#install">Install</a></h1>
+<h2 id="_reshuffle_appsapps-preserve_orderfalse"><a class="header" href="#_reshuffle_appsapps-preserve_orderfalse">_reshuffle_apps(apps, preserve_order=False)</a></h2>
+<p>This internal helper function determines the <strong>exact physical arrangement of applications in flash memory</strong> before installing them on a Tock board.<br>It enforces constraints from <strong>TBF headers</strong>, <strong>board-specific flash/RAM layout rules</strong>, and <strong>MPU alignment requirements</strong> so that the kernel can correctly discover and run applications.</p>
+<hr>
+<h3 id="purpose"><a class="header" href="#purpose">Purpose</a></h3>
+<p>Tock applications are stored in flash in <strong>TBF (Tock Binary Format)</strong> containers.<br>Each TBF header specifies:</p>
+<ul>
+<li>Whether the app is <strong>fixed-address</strong> (must be loaded at a specific flash/RAM address) or <strong>position-independent</strong> (can be loaded anywhere).</li>
+<li>The app’s <strong>flash size</strong> and <strong>RAM usage</strong>.</li>
+<li>MPU alignment requirements.</li>
+</ul>
+<blockquote>
+<p><strong>Note on fixed addresses and sizes:</strong><br>A fixed flash address refers to where the <strong>TBF header itself</strong> (and thus the whole app) must be placed in flash.<br>The size used for layout calculations <strong>includes</strong> the TBF header plus the app’s binary contents.<br>There is no footer — the kernel uses the total size from the header to locate the next app.</p>
+</blockquote>
+<p>The kernel discovers apps by scanning flash <strong>sequentially</strong> from the <strong>start-of-apps</strong> address.<br>Because of this, the <strong>order and alignment</strong> of apps in flash is critical.<br>_reshuffle_apps() ensures:</p>
+<ul>
+<li>Correct <strong>sorting</strong> of apps.</li>
+<li>Proper <strong>MPU-compliant alignment</strong>.</li>
+<li>Insertion of <strong>padding</strong> when needed.</li>
+<li>Prevention of <strong>flash and RAM overlaps</strong>.</li>
+</ul>
+<hr>
+<h3 id="determining-the-correct-order"><a class="header" href="#determining-the-correct-order">Determining the Correct Order</a></h3>
+<p>The function first determines which type of applications it is dealing with.</p>
+<h4 id="1-fixed-address-apps"><a class="header" href="#1-fixed-address-apps"><strong>1. Fixed-address apps</strong></a></h4>
+<ul>
+<li>Compiled for <strong>specific flash (and sometimes RAM) addresses</strong>.</li>
+<li>The addresses are encoded in the TBF header and cannot be changed without recompilation.</li>
+<li>_reshuffle_apps() will:
+<ol>
+<li>Sort them in <strong>increasing flash address order</strong>.</li>
+<li>Verify <strong>no overlapping flash ranges</strong>.</li>
+<li>If RAM addresses are fixed, verify <strong>no overlapping RAM ranges</strong>.</li>
+<li>Discard any app starting <strong>before the start-of-apps address</strong> or outside flash limits.</li>
+<li>Insert <strong>padding apps</strong> into gaps so that kernel scanning continues correctly.</li>
+</ol>
+</li>
+</ul>
+<p><strong>Why sorting by address is mandatory</strong><br>The kernel loads apps like this:
+address = start_of_apps
+while valid_TBF_header_at(address):
+load_app()
+address += app_size</p>
+<h4 id="2-position-independent-apps"><a class="header" href="#2-position-independent-apps">2. Position-independent apps</a></h4>
+<ul>
+<li>Can be placed <strong>anywhere</strong> in flash because they use relative addressing.</li>
+<li>_reshuffle_apps() decides order based on:
+<ul>
+<li><strong>preserve_order=True</strong> → Keep apps exactly in the order they are given.</li>
+<li><strong>preserve_order=False</strong>:
+<ul>
+<li>“size_descending” → Sort largest to smallest to reduce fragmentation.</li>
+<li>None → Any order is acceptable.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>After ordering, applies alignment rules and inserts padding when needed.</li>
+</ul>
+<hr>
+<h4 id="3-mixed-fixed-and-position-independent"><a class="header" href="#3-mixed-fixed-and-position-independent">3. Mixed fixed and position-independent</a></h4>
+<ul>
+<li><strong>Not supported</strong>.<br>Mixing fixed and movable apps is complex and currently unimplemented.</li>
+<li>If both types are detected, _reshuffle_apps() raises a TockLoaderException.</li>
+</ul>
+<hr>
+<h3 id="alignment-and-padding"><a class="header" href="#alignment-and-padding">Alignment and Padding</a></h3>
+<p>In this context, <strong>alignment</strong> means placing each app in flash at a starting address that matches certain hardware rules.<br>These rules come from the MPU (Memory Protection Unit) or the flash controller, and they define which addresses are considered valid starting points for an app.</p>
+<p>For example:</p>
+<ul>
+<li>Some boards require apps to start at a multiple of their own size.</li>
+<li>Others require starting addresses to be aligned to a power-of-two boundary (e.g., 4 KB).</li>
+<li>Some flash chips can only write or erase in page-sized chunks.</li>
+</ul>
+<p>If an app would start at an address that doesn’t meet these rules, <code>_reshuffle_apps()</code> inserts a <strong>padding app</strong> — an empty region filled with <code>0xFF</code>.<br>This moves the start of the next real app forward until it’s at a valid aligned address.</p>
+<p>Padding apps have no executable code. They simply reserve space so that:</p>
+<ul>
+<li>The kernel can correctly find the next app when scanning flash.</li>
+<li>Hardware alignment requirements are satisfied.</li>
+</ul>
+<h3 id="cleaning-up-flash"><a class="header" href="#cleaning-up-flash">Cleaning Up Flash</a></h3>
+<p>After writing, _reshuffle_apps():</p>
+<ul>
+<li>Erases flash immediately after the last installed app.</li>
+<li>Ensures the kernel detects the correct <strong>end-of-applications</strong>.</li>
+<li>Prevents stray flash data from being mistaken for a valid app.</li>
+</ul>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
