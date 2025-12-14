@@ -928,6 +928,16 @@ impl TbfHeader {
         }
     }
 
+    /// Return flags of the application
+    ///
+    /// DELTA: Originally did not exist
+    pub fn get_application_flags(&self) -> u32 {
+        match *self {
+            TbfHeader::TbfHeaderV2(hd) => hd.base.flags,
+            _ => 0,
+        }
+    }
+
     /// Return header size of the application.
     pub fn header_size(&self) -> u16 {
         match *self {
@@ -954,19 +964,17 @@ impl TbfHeader {
         }
     }
 
-    /// Get the number of bytes from the start of the app's region in flash that
-    /// is for kernel use only. The app cannot write this region.
-    pub fn get_protected_size(&self) -> u32 {
+    /// Get the size of the protected trailer. This only returns only the
+    /// trailer size, WITHOUT the header. The app cannot write to this region.
+    ///
+    /// DELTA: Originally did not exist
+    pub fn get_protected_trailer_size(&self) -> u32 {
         match *self {
             TbfHeader::TbfHeaderV2(hd) => {
                 if hd.program.is_some() {
-                    hd.program.map_or(0, |p| {
-                        (hd.base.header_size as u32) + p.protected_trailer_size
-                    })
+                    hd.program.map_or(0, |p| p.protected_trailer_size)
                 } else if hd.main.is_some() {
-                    hd.main.map_or(0, |m| {
-                        (hd.base.header_size as u32) + m.protected_trailer_size
-                    })
+                    hd.main.map_or(0, |m| m.protected_trailer_size)
                 } else {
                     0
                 }
@@ -981,7 +989,18 @@ impl TbfHeader {
     pub fn get_app_start_offset(&self) -> u32 {
         // The application binary starts after the header plus any
         // additional protected space.
-        self.get_protected_size()
+        self.get_protected_region_size()
+    }
+
+    /// Get the size in bytes of the protected region from the beginning
+    /// of the process binary (start of the TBF header). The returned size
+    /// includes the TBF Header, Only valid if this is an app.
+    //
+    // DELTA: Originally named get_protected_size, renamed to remove ambiguity
+    pub fn get_protected_region_size(&self) -> u32 {
+        // The application binary starts after the header plus any
+        // additional protected space.
+        self.header_size() as u32 + self.get_protected_trailer_size()
     }
 
     /// Get the offset from the beginning of the app's flash region where the
@@ -990,11 +1009,9 @@ impl TbfHeader {
         match *self {
             TbfHeader::TbfHeaderV2(hd) => {
                 if hd.program.is_some() {
-                    hd.program
-                        .map_or(0, |p| p.init_fn_offset + (hd.base.header_size as u32))
+                    hd.program.map_or(0, |p| p.init_fn_offset)
                 } else if hd.main.is_some() {
-                    hd.main
-                        .map_or(0, |m| m.init_fn_offset + (hd.base.header_size as u32))
+                    hd.main.map_or(0, |m| m.init_fn_offset)
                 } else {
                     0
                 }
@@ -1171,6 +1188,16 @@ impl TbfHeader {
     pub fn get_binary_version(&self) -> u32 {
         match self {
             TbfHeader::TbfHeaderV2(hd) => hd.program.map_or(0, |p| p.version),
+            _ => 0,
+        }
+    }
+
+    /// Return the version of the Tock Binary Format
+    ///
+    /// DELTA: originally did not exist
+    pub fn get_tbf_version(&self) -> u16 {
+        match self {
+            TbfHeader::TbfHeaderV2(hd) => hd.base.version,
             _ => 0,
         }
     }

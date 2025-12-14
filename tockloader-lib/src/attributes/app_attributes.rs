@@ -19,6 +19,7 @@ use crate::errors::{TockError, TockloaderError};
 /// See also <https://book.tockos.org/doc/tock_binary_format>
 #[derive(Debug)]
 pub struct AppAttributes {
+    pub address: u64,
     pub tbf_header: TbfHeader,
     pub tbf_footers: Vec<TbfFooter>,
 }
@@ -41,8 +42,13 @@ impl TbfFooter {
 // TODO(george-cosma): Could take advantages of the trait rework
 
 impl AppAttributes {
-    pub(crate) fn new(header_data: TbfHeader, footers_data: Vec<TbfFooter>) -> AppAttributes {
+    pub(crate) fn new(
+        address: u64,
+        header_data: TbfHeader,
+        footers_data: Vec<TbfFooter>,
+    ) -> AppAttributes {
         AppAttributes {
+            address,
             tbf_header: header_data,
             tbf_footers: footers_data,
         }
@@ -150,7 +156,7 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes = AppAttributes::new(header, footers);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
             apps_details.insert(apps_counter, details);
             apps_counter += 1;
@@ -289,7 +295,7 @@ impl AppAttributes {
                 footer_offset += footer_info.1 + 4;
             }
 
-            let details: AppAttributes = AppAttributes::new(header, footers);
+            let details: AppAttributes = AppAttributes::new(appaddr, header, footers);
 
             apps_details.insert(apps_counter, details);
             apps_counter += 1;
