@@ -76,13 +76,13 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         );
 
         println!(
-            " {BOLD_GREEN} Address in Flash: {RESET}{}",
-            system_details.appaddr.unwrap(),
+            " {BOLD_GREEN} Address in Flash: {RESET}{:#x}",
+            details.address,
         );
 
         println!(
             " {BOLD_GREEN}    TBF version:   {RESET}{}",
-            details.tbf_header.get_binary_version(),
+            details.tbf_header.get_tbf_version(),
         );
 
         println!(
@@ -96,11 +96,14 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         );
 
         println!(
-            " {BOLD_GREEN}    checksum:      {RESET}{}",
+            " {BOLD_GREEN}    checksum:      {RESET}{:#x}",
             details.tbf_header.checksum(),
         );
 
-        println!(" {BOLD_GREEN}    flags:{RESET}");
+        println!(
+            " {BOLD_GREEN}    flags:         {RESET}{:#b}",
+            details.tbf_header.get_application_flags(),
+        );
         println!(
             " {BOLD_GREEN}        enabled:       {RESET}{}",
             details.tbf_header.enabled(),
@@ -111,55 +114,55 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
             details.tbf_header.sticky(),
         );
 
-        println!(" {BOLD_GREEN}    TVL: Main (1){RESET}");
+        println!(" {BOLD_GREEN}    TLV: Main (1){RESET}");
         println!(
-            " {BOLD_GREEN}        init_fn_offset:        {RESET}{}",
+            " {BOLD_GREEN}        init_fn_offset:           {RESET}{}",
             details.tbf_header.get_init_function_offset(),
         );
 
         println!(
-            " {BOLD_GREEN}        protected_size:        {RESET}{}",
-            details.tbf_header.get_protected_size(),
+            " {BOLD_GREEN}        protected_trailer_size:   {RESET}{}",
+            details.tbf_header.get_protected_trailer_size(),
         );
 
         println!(
-            " {BOLD_GREEN}        minimum_ram_size:      {RESET}{}",
+            " {BOLD_GREEN}        minimum_ram_size:         {RESET}{}",
             details.tbf_header.get_minimum_app_ram_size(),
         );
 
-        println!(" {BOLD_GREEN}    TVL: Program (9){RESET}");
+        println!(" {BOLD_GREEN}    TLV: Program (9){RESET}");
         println!(
-            " {BOLD_GREEN}        init_fn_offset:        {RESET}{}",
+            " {BOLD_GREEN}        init_fn_offset:           {RESET}{}",
             details.tbf_header.get_init_function_offset(),
         );
 
         println!(
-            " {BOLD_GREEN}        protected_size:        {RESET}{}",
-            details.tbf_header.get_protected_size(),
+            " {BOLD_GREEN}        protected_trailer_size:   {RESET}{}",
+            details.tbf_header.get_protected_trailer_size(),
         );
 
         println!(
-            " {BOLD_GREEN}        minimum_ram_size:      {RESET}{}",
+            " {BOLD_GREEN}        minimum_ram_size:         {RESET}{}",
             details.tbf_header.get_minimum_app_ram_size(),
         );
 
         println!(
-            " {BOLD_GREEN}        binary_end_offset:     {RESET}{}",
+            " {BOLD_GREEN}        binary_end_offset:        {RESET}{}",
             details.tbf_header.get_binary_end(),
         );
 
         println!(
-            " {BOLD_GREEN}        app_version:           {RESET}{}",
+            " {BOLD_GREEN}        app_version:              {RESET}{}",
             details.tbf_header.get_binary_version(),
         );
 
-        println!(" {BOLD_GREEN}    TVL: Package Name (3){RESET}");
+        println!(" {BOLD_GREEN}    TLV: Package Name (3){RESET}");
         println!(
             " {BOLD_GREEN}        package_name:          {RESET}{}",
             details.tbf_header.get_package_name().unwrap(),
         );
 
-        println!(" {BOLD_GREEN}    TVL: Kernel Version (8){RESET}");
+        println!(" {BOLD_GREEN}    TLV: Kernel Version (8){RESET}");
         println!(
             " {BOLD_GREEN}        kernel_major:          {RESET}{}",
             details.tbf_header.get_kernel_version().unwrap().0,
@@ -183,7 +186,7 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         println!(" {BOLD_GREEN}            footer_size:       {RESET}{total_footer_size}");
 
         for (j, footer_details) in details.tbf_footers.iter().enumerate() {
-            println!(" {BOLD_GREEN}    Footer [{j}] TVL: Credentials{RESET}");
+            println!(" {BOLD_GREEN}    Footer [{j}] TLV: Credentials{RESET}");
 
             println!(
                 " {BOLD_GREEN}        Type:                  {RESET}{}",

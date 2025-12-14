@@ -16,8 +16,9 @@ fn simple_tbf() {
     dbg!(&header);
     assert!(header.enabled());
     assert_eq!(header.get_minimum_app_ram_size(), 4848);
-    assert_eq!(header.get_init_function_offset(), 41 + header_len as u32);
-    assert_eq!(header.get_protected_size(), header_len as u32);
+    assert_eq!(header.get_init_function_offset(), 41);
+    assert_eq!(header.get_protected_trailer_size(), 0);
+    assert_eq!(header.get_application_flags(), 1);
     assert_eq!(header.get_package_name().unwrap(), "_heart");
     assert_eq!(header.get_kernel_version().unwrap(), (2, 0));
 }
@@ -37,8 +38,9 @@ fn footer_sha256() {
     dbg!(&header);
     assert!(header.enabled());
     assert_eq!(header.get_minimum_app_ram_size(), 4848);
-    assert_eq!(header.get_init_function_offset(), 41 + header_len as u32);
-    assert_eq!(header.get_protected_size(), header_len as u32);
+    assert_eq!(header.get_init_function_offset(), 41);
+    assert_eq!(header.get_protected_trailer_size(), 0);
+    assert_eq!(header.get_application_flags(), 1);
     assert_eq!(header.get_package_name().unwrap(), "_heart");
     assert_eq!(header.get_kernel_version().unwrap(), (2, 0));
     let binary_offset = header.get_binary_end() as usize;
@@ -87,8 +89,9 @@ fn footer_rsa4096() {
     dbg!(&header);
     assert!(header.enabled());
     assert_eq!(header.get_minimum_app_ram_size(), 4612);
-    assert_eq!(header.get_init_function_offset(), 41 + header_len as u32);
-    assert_eq!(header.get_protected_size(), header_len as u32);
+    assert_eq!(header.get_init_function_offset(), 41);
+    assert_eq!(header.get_protected_trailer_size(), 0);
+    assert_eq!(header.get_application_flags(), 1);
     assert_eq!(header.get_package_name().unwrap(), "c_hello");
     assert_eq!(header.get_kernel_version().unwrap(), (2, 0));
     let binary_offset = header.get_binary_end() as usize;
