@@ -3,7 +3,7 @@ use log::warn;
 
 use crate::attributes::app_attributes::AppAttributes;
 use crate::board_settings::BoardSettings;
-use crate::tabs::tab::Tab;
+use crate::tabs::tab::{Tab, TbfFile};
 use tbf_parser::parse::{parse_tbf_header, parse_tbf_header_lengths};
 
 const ALIGNMENT: u64 = 1024;
@@ -23,7 +23,7 @@ pub struct FlexibleApp {
 #[derive(Clone)]
 pub struct FixedApp {
     idx: Option<usize>,
-    candidate_addresses: Vec<u64>,
+    compatible_binaries: Vec<(Vec<u8>, u64, u64)>,
     size: u64,
 }
 
@@ -35,11 +35,14 @@ impl TockApp {
         }
     }
 
-    pub fn from_app_attributes(app_attributes: &AppAttributes) -> TockApp {
+    pub fn from_app_attributes(
+        app_attributes: &AppAttributes,
+        settings: &BoardSettings,
+    ) -> TockApp {
         if let Some(address) = app_attributes.tbf_header.get_fixed_address_flash() {
             TockApp::Fixed(FixedApp {
                 idx: None,
-                candidate_addresses: vec![address as u64], // (adi): change this when tbf selector gets merged
+                compatible_binaries: vec![vec![0u8], address, settings.ram_start_address], // (adi): change this when tbf selector gets merged
                 size: app_attributes.tbf_header.total_size() as u64,
             })
         } else {

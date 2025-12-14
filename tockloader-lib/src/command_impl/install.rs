@@ -35,10 +35,7 @@ impl CommandInstall for TockloaderConnection {
         app.replace_idx(tock_app_list.len());
         tock_app_list.push(app.clone());
 
-        app_binaries.push(
-            tab.extract_binary(settings.arch.clone().unwrap())
-                .unwrap(),
-        );
+        app_binaries.push(tab.extract_binary(settings.arch.clone().unwrap()).unwrap());
 
         let configuration = reshuffle_apps(&settings, tock_app_list).unwrap();
 
