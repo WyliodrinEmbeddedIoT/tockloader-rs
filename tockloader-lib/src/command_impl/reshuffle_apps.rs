@@ -3,6 +3,7 @@ use log::warn;
 
 use crate::attributes::app_attributes::AppAttributes;
 use crate::board_settings::BoardSettings;
+use crate::errors::{InternalError, TabError};
 use crate::tabs::tab::{Tab, TbfFile};
 use tbf_parser::parse::{parse_tbf_header, parse_tbf_header_lengths};
 
@@ -23,7 +24,7 @@ pub struct FlexibleApp {
 #[derive(Clone)]
 pub struct FixedApp {
     idx: Option<usize>,
-    compatible_binaries: Vec<(Vec<u8>, u64, u64)>,
+    compatible_binaries: Vec<(String, u64, u64)>,
     size: u64,
 }
 
@@ -42,7 +43,11 @@ impl TockApp {
         if let Some(address) = app_attributes.tbf_header.get_fixed_address_flash() {
             TockApp::Fixed(FixedApp {
                 idx: None,
-                compatible_binaries: vec![vec![0u8], address, settings.ram_start_address], // (adi): change this when tbf selector gets merged
+                compatible_binaries: vec![(
+                    settings.arch.clone().unwrap(),
+                    address as u64,
+                    settings.ram_start_address,
+                )], // (adi): change this when tbf selector gets merged
                 size: app_attributes.tbf_header.total_size() as u64,
             })
         } else {
@@ -77,7 +82,8 @@ impl TockApp {
         let header =
             parse_tbf_header(&binary[0..header_len as usize], tbf_version).expect("invalid header");
 
-        if let Some(addr) = header.get_fixed_address_flash() {
+        if let Some(mut addr) = header.get_fixed_address_flash() {
+            addr = align_down(addr as u64) as u32;
             if addr < settings.start_address as u32 {
                 // this rust app should not be here
                 panic!(
@@ -86,11 +92,11 @@ impl TockApp {
                 )
             }
             // turns out that fixed address is a loosely-used term, address has to be aligned down to a multiple of 1024 bytes
-            let address = align_down(addr as u64);
+            // let address = align_down(addr as u64);
 
             Some(TockApp::Fixed(FixedApp {
                 idx: None,
-                candidate_addresses: vec![address], // (adi): change this when tbf selector gets merged
+                compatible_binaries: tab.filter_tbfs(settings).unwrap(), // (adi): change this when tbf selector gets merged
                 size: total_size as u64,
             }))
         } else {
@@ -103,9 +109,10 @@ impl TockApp {
 }
 
 impl FixedApp {
-    fn as_index(&self, install_address: u64) -> Index {
+    fn as_index(&self, arch: String, install_address: u64) -> Index {
         Index {
             idx: self.idx,
+            arch: Some(arch),
             address: install_address,
             size: self.size,
         }
@@ -116,6 +123,7 @@ impl FlexibleApp {
     fn as_index(&self, install_address: u64) -> Index {
         Index {
             idx: self.idx,
+            arch: None,
             address: install_address,
             size: self.size,
         }
@@ -125,6 +133,7 @@ impl FlexibleApp {
 #[derive(Debug, Clone)]
 pub struct Index {
     idx: Option<usize>,
+    arch: Option<String>,
     address: u64,
     size: u64,
 }
@@ -152,7 +161,7 @@ pub fn reshuffle_apps(
     }
 
     for app in &mut rust_apps {
-        if app.candidate_addresses.is_empty() {
+        if app.compatible_binaries.is_empty() {
             warn!("Can not reorder apps since fixed application has no candidate addresses!");
             return None;
         }
@@ -161,16 +170,16 @@ pub fn reshuffle_apps(
 
         // For now this algorithm only supports pre-chosen addresses for fixed apps.
         // We will keep only the first address around.
-        if app.candidate_addresses.len() > 1 {
-            let first = app.candidate_addresses[0];
-            app.candidate_addresses.clear();
-            app.candidate_addresses.push(first);
+        if app.compatible_binaries.len() > 1 {
+            let first = app.compatible_binaries[0].clone();
+            app.compatible_binaries.clear();
+            app.compatible_binaries.push(first);
         }
     }
 
     // this is necessary. If a rust app is already installed, for example: at 0x48000
     // and we want to install another one at 0x40000, reorder them first
-    rust_apps.sort_by_key(|app| app.candidate_addresses[0]);
+    rust_apps.sort_by_key(|app| app.compatible_binaries[0].1);
 
     // make permutations only for the c apps, as their order can be changed
     let mut permutations = (0..c_apps.len()).permutations(c_apps.len());
@@ -199,7 +208,7 @@ pub fn reshuffle_apps(
                     if rust_apps.get(rust_index).is_some() {
                         // we also have a rust app, insert C app only if it fits
                         insert_c = c_apps[order[permutation_index]].size
-                            <= rust_apps[rust_index].candidate_addresses[0] - address;
+                            <= rust_apps[rust_index].compatible_binaries[0].1 - address;
                     } else {
                         // we have only a C app, insert it accordingly
                         insert_c = true;
@@ -227,7 +236,7 @@ pub fn reshuffle_apps(
                         0
                     }
                 } else {
-                    if rust_apps[rust_index].candidate_addresses[0] < start_address {
+                    if rust_apps[rust_index].compatible_binaries[0].1 < start_address {
                         // the program wants to insert a rust app where another rust app already exists
                         warn!(
                             "Can't insert the rust app, space is already occupied by another rust app"
@@ -235,7 +244,7 @@ pub fn reshuffle_apps(
                         return None;
                     }
                     // rust app needs to be inserted at a fixed address, pad until there
-                    rust_apps[rust_index].candidate_addresses[0] - start_address
+                    rust_apps[rust_index].compatible_binaries[0].1 - start_address
                 };
 
                 if needed_padding > 0 {
@@ -243,6 +252,7 @@ pub fn reshuffle_apps(
                     total_padding += needed_padding as usize;
                     reordered_apps.push(Index {
                         idx: None,
+                        arch: None,
                         address: start_address,
                         size: needed_padding,
                     });
@@ -261,8 +271,10 @@ pub fn reshuffle_apps(
                     permutation_index += 1;
                 } else {
                     // insert the rust app, don't change its address because it is fixed
-                    let rust_app = rust_apps[rust_index]
-                        .as_index(rust_apps[rust_index].candidate_addresses[0]);
+                    let rust_app = rust_apps[rust_index].as_index(
+                        rust_apps[rust_index].compatible_binaries[0].0.clone(),
+                        rust_apps[rust_index].compatible_binaries[0].1,
+                    );
                     if rust_app.idx.is_none() {
                         panic!("Rust app has no index assigned!");
                     }
@@ -312,7 +324,11 @@ fn align_down(address: u64) -> u64 {
 }
 
 /// This function creates the full binary that will be written
-pub fn create_pkt(configuration: Vec<Index>, mut app_binaries: Vec<Vec<u8>>) -> Vec<u8> {
+pub fn create_pkt(
+    configuration: Vec<Index>,
+    mut app_binaries: Vec<Vec<u8>>,
+    tab: Option<Tab>,
+) -> Vec<u8> {
     let mut pkt: Vec<u8> = Vec::new();
     for item in configuration.iter() {
         if item.idx.is_none() {
@@ -320,7 +336,18 @@ pub fn create_pkt(configuration: Vec<Index>, mut app_binaries: Vec<Vec<u8>>) -> 
             let mut buf = create_padding(item.size as u32);
             pkt.append(&mut buf);
         } else {
-            pkt.append(&mut app_binaries[item.idx.unwrap()]);
+            match &item.arch {
+                Some(fixed_arch) => pkt.append(
+                    &mut tab
+                        .as_ref()
+                        .unwrap()
+                        .extract_binary(fixed_arch.clone())
+                        .unwrap(),
+                ),
+                None => {
+                    pkt.append(&mut app_binaries[item.idx.unwrap()]);
+                }
+            }
         }
     }
     pkt

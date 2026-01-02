@@ -14,8 +14,9 @@ impl CommandInstall for TockloaderConnection {
         let app_attributes_list: Vec<AppAttributes> = self.list().await.unwrap();
         let mut tock_app_list = app_attributes_list
             .iter()
-            .map(TockApp::from_app_attributes)
+            .map(|app| TockApp::from_app_attributes(app, &settings))
             .collect::<Vec<TockApp>>();
+        log::info!("tock apps len {:?}", tock_app_list.len());
 
         // obtain the binaries in a vector
         let mut app_binaries: Vec<Vec<u8>> = Vec::new();
@@ -30,18 +31,23 @@ impl CommandInstall for TockloaderConnection {
             address += app.tbf_header.total_size() as u64;
         }
 
-        let mut app = TockApp::from_tab(&tab, &settings).unwrap();
+        // let mut app = TockApp::from_tab(&tab, &settings).unwrap();
 
-        app.replace_idx(tock_app_list.len());
-        tock_app_list.push(app.clone());
+        // app.replace_idx(tock_app_list.len());
+        // tock_app_list.push(app.clone());
 
-        app_binaries.push(tab.extract_binary(settings.arch.clone().unwrap()).unwrap());
+        // app_binaries.push(tab.extract_binary(settings.arch.clone().unwrap()).unwrap());
 
         let configuration = reshuffle_apps(&settings, tock_app_list).unwrap();
 
         // create the pkt, this contains all the binaries in a vec
-        let pkt = create_pkt(configuration, app_binaries);
+        let pkt = create_pkt(configuration, app_binaries, Some(tab));
 
+        for item in &pkt[0..20] {
+            log::info!("{item}");
+        }
+        log::info!("pkt len {}", pkt.len());
+        // panic!();
         // write the pkt
         let _ = self.write(settings.start_address, &pkt).await;
         Ok(())

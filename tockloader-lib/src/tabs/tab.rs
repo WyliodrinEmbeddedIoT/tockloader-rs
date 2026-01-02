@@ -85,10 +85,10 @@ impl Tab {
     pub fn filter_tbfs(
         &self,
         settings: &BoardSettings,
-    ) -> Result<Vec<(Vec<u8>, u64, u64)>, TockloaderError> {
+    ) -> Result<Vec<(String, u64, u64)>, TockloaderError> {
         // save the file
         // also save flash start and ram start for comparing easily later
-        let mut compatible_tbfs: Vec<(Vec<u8>, u64, u64)> = Vec::new();
+        let mut compatible_tbfs: Vec<(String, u64, u64)> = Vec::new();
         for file in &self.tbf_files {
             let (arch, flash, ram) = Self::split_arch(file.filename.to_string());
             // check if we have the same arch
@@ -98,13 +98,13 @@ impl Tab {
                     && flash >= settings.start_address
                     && ram >= settings.ram_start_address
                 {
-                    compatible_tbfs.push((file.data.clone(), flash, ram));
+                    compatible_tbfs.push((file.filename.to_string(), flash, ram));
                 }
             } else if arch.starts_with(settings.arch.as_ref().unwrap()) {
                 // this happens for C apps, we'll have
                 // arch = "cortex-m4.tbf"
                 // without any flash and ram values
-                compatible_tbfs.push((file.data.clone(), flash, ram));
+                compatible_tbfs.push((file.filename.to_string(), flash, ram));
             }
         }
         Ok(compatible_tbfs)
@@ -128,9 +128,9 @@ impl Tab {
         }
     }
 
-    pub fn extract_binary(&self, arch: &str) -> Result<Vec<u8>, TockloaderError> {
+    pub fn extract_binary(&self, arch: String) -> Result<Vec<u8>, TockloaderError> {
         for file in &self.tbf_files {
-            if file.filename.starts_with(arch) {
+            if file.filename.starts_with(&arch) {
                 return Ok(file.data.clone());
             }
         }
