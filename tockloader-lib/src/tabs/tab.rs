@@ -85,10 +85,10 @@ impl Tab {
     pub fn filter_tbfs(
         &self,
         settings: &BoardSettings,
-    ) -> Result<Vec<(String, u64, u64)>, TockloaderError> {
+    ) -> Result<Vec<Option<(u64, u64)>>, TockloaderError> {
         // save the file
         // also save flash start and ram start for comparing easily later
-        let mut compatible_tbfs: Vec<(String, u64, u64)> = Vec::new();
+        let mut compatible_tbfs: Vec<Option<(u64, u64)>> = Vec::new();
         for file in &self.tbf_files {
             let (arch, flash, ram) = Self::split_arch(file.filename.to_string());
             // check if we have the same arch
@@ -98,14 +98,17 @@ impl Tab {
                     && flash >= settings.start_address
                     && ram >= settings.ram_start_address
                 {
-                    compatible_tbfs.push((file.filename.to_string(), flash, ram));
+                    log::info!("rust, pushed arch {arch}, flash {flash:#x}, ram {ram:#x}");
+                    compatible_tbfs.push(Some((flash, ram)));
                 }
-            } else if arch.starts_with(settings.arch.as_ref().unwrap()) {
-                // this happens for C apps, we'll have
-                // arch = "cortex-m4.tbf"
-                // without any flash and ram values
-                compatible_tbfs.push((file.filename.to_string(), flash, ram));
             }
+            // how about we don't do anything on else?
+            // } else if arch.starts_with(settings.arch.as_ref().unwrap()) {
+            //     // this happens for C apps, we'll have
+            //     // arch = "cortex-m4.tbf"
+            //     // without any flash and ram values
+            //     compatible_tbfs.push(None);
+            // }
         }
         Ok(compatible_tbfs)
     }
@@ -115,7 +118,7 @@ impl Tab {
         // "cortex-m0.0x10020000.0x20004000.tab"
         // splitting by .0x will give us "arch", "flash start", "ram start.tab"
         // 3 items
-        log::info!("filename {filename}");
+        // log::info!("filename {filename}");
         let data: Vec<&str> = filename.split(".0x").collect();
         if data.len() == 3 {
             let flashaddr: u64 = u64::from_str_radix(data[1], 16).unwrap();

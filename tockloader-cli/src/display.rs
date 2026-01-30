@@ -76,8 +76,8 @@ pub async fn print_info(app_details: &mut [AppAttributes], system_details: &mut 
         );
 
         println!(
-            " {BOLD_GREEN} Address in Flash: {RESET}{}",
-            system_details.appaddr.unwrap(),
+            " {BOLD_GREEN} Address in Flash: {RESET}{:#x}",
+            details.address,
         );
 
         println!(

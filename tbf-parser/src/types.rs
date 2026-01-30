@@ -540,6 +540,24 @@ impl core::convert::TryFrom<&[u8]> for TbfHeaderV2FixedAddresses {
     type Error = TbfParseError;
 
     fn try_from(b: &[u8]) -> Result<TbfHeaderV2FixedAddresses, Self::Error> {
+        log::info!("bytes? {:?}", b);
+        let start_process_ram: u32 = u32::from_le_bytes(
+            b.get(0..4)
+                .ok_or(TbfParseError::InternalError)?
+                .try_into()?,
+        );
+        let start_process_flash: u32 = u32::from_le_bytes(
+            b.get(4..8)
+                .ok_or(TbfParseError::InternalError)?
+                .try_into()?,
+        );
+
+        log::info!(
+            "obtained flash {:#x}, ram {:#x}",
+            start_process_flash,
+            start_process_ram
+        );
+        // panic!();
         Ok(TbfHeaderV2FixedAddresses {
             start_process_ram: u32::from_le_bytes(
                 b.get(0..4)
