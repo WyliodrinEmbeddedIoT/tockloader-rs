@@ -51,6 +51,20 @@ pub trait CommandInstall {
 }
 
 #[async_trait]
+pub trait CommandUninstall {
+    /// This function is used for uninstalling apps
+    /// - app_name is Some(value) if --name is used, otherwise it is None
+    /// - app_index is Some(value) if the app is chosen from the list, None otherwise
+    ///
+    /// There is no scenario in which both are Some(value) or None
+    async fn uninstall_app(
+        &mut self,
+        app_name: Option<String>,
+        app_index: Option<usize>,
+    ) -> Result<(), TockloaderError>;
+}
+
+#[async_trait]
 pub trait CommandEraseApps {
     async fn erase_apps(&mut self) -> Result<(), TockloaderError>;
 }

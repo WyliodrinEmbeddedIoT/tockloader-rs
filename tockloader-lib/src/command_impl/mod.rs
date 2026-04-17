@@ -6,3 +6,4 @@ pub mod list;
 pub mod probers;
 pub mod reshuffle_apps;
 pub mod serial;
+pub mod uninstall;
