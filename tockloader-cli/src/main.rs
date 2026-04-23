@@ -10,6 +10,7 @@ use anyhow::{Context, Result};
 use clap::ArgMatches;
 use cli::make_cli;
 use known_boards::KnownBoardNames;
+use tockloader_lib::attributes::app_attributes::AppOption;
 use tockloader_lib::board_settings::BoardSettings;
 use tockloader_lib::connection::{
     Connection, ProbeRSConnection, ProbeTargetInfo, SerialConnection, SerialTargetInfo,
@@ -19,7 +20,7 @@ use tockloader_lib::known_boards::KnownBoard;
 use tockloader_lib::tabs::tab::Tab;
 use tockloader_lib::{
     list_debug_probes, list_serial_ports, CommandEraseApps, CommandInfo, CommandInstall,
-    CommandList,
+    CommandList, CommandUninstall,
 };
 
 fn get_serial_target_info(user_options: &ArgMatches) -> SerialTargetInfo {
@@ -239,6 +240,63 @@ async fn main() -> Result<()> {
             let mut conn = open_connection(sub_matches).await?;
 
             conn.erase_apps().await.context("Failed to erase apps.")?;
+        }
+        Some(("uninstall", sub_matches)) => {
+            cli::validate(&mut cmd, sub_matches);
+            let mut conn = open_connection(sub_matches).await?;
+            let installed_apps = conn.list().await.context("Failed to list apps.")?;
+            let app_name = sub_matches.get_one::<String>("name").map(String::as_str);
+
+            if installed_apps.is_empty() {
+                println!("No apps installed");
+                return Ok(());
+            }
+            match app_name {
+                Some(app_name) => {
+                    installed_apps
+                        .iter()
+                        .find(|iter| iter.tbf_header.get_package_name().unwrap_or("") == app_name)
+                        .expect("Specified app is not installed");
+                    conn.uninstall_app(Some(app_name.to_string()), None)
+                        .await
+                        .context("Failed to uninstall app.")?;
+                }
+                None => loop {
+                    let mut options: Vec<AppOption> = installed_apps
+                        .iter()
+                        .enumerate()
+                        .map(|(i, app)| AppOption { index: i + 1, app })
+                        .collect();
+
+                    // Delete all option
+                    options.insert(
+                        0,
+                        AppOption {
+                            index: 0,
+                            app: &installed_apps[0],
+                        },
+                    );
+                    let selected =
+                        inquire::Select::new("Which app do you want to uninstall?", options)
+                            .prompt()
+                            .context("No apps installed")
+                            .unwrap();
+
+                    if inquire::Select::new(
+                        format!("You chose {selected}",).as_str(),
+                        ["Cancel", "Confirm"].to_vec(),
+                    )
+                    .prompt()
+                    .unwrap()
+                        == "Confirm"
+                    {
+                        conn.uninstall_app(None, Some(selected.index))
+                            .await
+                            .context("Failed to uninstall app")?;
+                        break;
+                    }
+                },
+            }
         }
         _ => {
             println!("Could not run the provided subcommand.");

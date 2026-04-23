@@ -21,14 +21,13 @@ impl CommandInstall for TockloaderConnection {
         // obtain the binaries in a vector
         let mut app_binaries: Vec<Vec<u8>> = Vec::new();
 
-        let mut address = settings.start_address;
         for app in app_attributes_list.iter() {
+            let address = app.address;
             app_binaries.push(
                 self.read(address, app.tbf_header.total_size() as usize)
                     .await
                     .unwrap(),
             );
-            address += app.tbf_header.total_size() as u64;
         }
 
         let app = TockApp::from_tab(&tab, &settings).unwrap();

@@ -21,6 +21,35 @@ pub struct AppAttributes {
     pub tbf_footers: Vec<TbfFooter>,
 }
 
+/// This structure is used for displaying installed apps in the CLI
+#[derive(Debug)]
+pub struct AppOption<'a> {
+    pub index: usize,
+    pub app: &'a AppAttributes,
+}
+
+impl<'a> std::fmt::Display for AppOption<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.index == 0 {
+            write!(f, "Delete all")
+        } else {
+            write!(
+                f,
+                "{}. {} - start: {:#x}, size: {}, type: {}",
+                self.index,
+                self.app.tbf_header.get_package_name().unwrap_or(""),
+                self.app.address,
+                self.app.tbf_header.total_size(),
+                if self.app.tbf_header.get_fixed_address_flash().is_none() {
+                    "C (flexible)"
+                } else {
+                    "Rust (fixed)"
+                }
+            )
+        }
+    }
+}
+
 /// This structure represents a footer of a Tock application. Currently, footers
 /// only contain credentials, which are used to verify the integrity of the
 /// application.
