@@ -230,7 +230,6 @@ impl ComponentRender<RenderProps> for TerminalBox {
             .find(|(idx, _)| idx == &self.screen_idx)
             .map(|(_, app)| app)
         {
-            // writeln!(file, "We have active app when rendering the terminal");
             if let Some(parser) = self.properties.apps_parsers_map.get(active_app) {
                 let mut parser = parser.lock().unwrap();
                 parser.set_size(

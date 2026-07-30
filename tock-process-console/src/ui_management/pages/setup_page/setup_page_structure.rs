@@ -120,10 +120,8 @@ impl Component for SetupPage {
             KeyCode::Enter => {
                 self.set_port();
             }
-            KeyCode::Char('c') => {
-                if key.modifiers == KeyModifiers::CONTROL {
-                    let _ = self.action_sender.send(Action::Exit);
-                }
+            KeyCode::Char('c') if key.modifiers == KeyModifiers::CONTROL => {
+                let _ = self.action_sender.send(Action::Exit);
             }
             KeyCode::Tab | KeyCode::Char('h') | KeyCode::Char('l') | KeyCode::Char('a') => {
                 if self.show_state == ShowState::ShowBoardsOnly {
