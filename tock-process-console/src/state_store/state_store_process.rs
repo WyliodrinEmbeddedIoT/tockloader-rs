@@ -3,14 +3,16 @@
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
 use super::{Action, State};
-use crate::pconsole::board::connection::ConnectionHandler;
-use crate::pconsole::board::event::Event;
-use crate::pconsole::termination::{Interrupted, Terminator};
+use crate::termination::{Interrupted, Terminator};
 use bytes::Bytes;
+use tockloader_lib::console;
 use tokio::sync::broadcast;
 use tokio::sync::mpsc::{self, UnboundedReceiver, UnboundedSender};
 
-type ConnectionHandle = (UnboundedReceiver<Event>, UnboundedSender<Bytes>);
+type ConnectionHandle = (
+    UnboundedReceiver<console::event::Event>,
+    UnboundedSender<Bytes>,
+);
 
 pub struct StateStore {
     state_sender: UnboundedSender<State>,
@@ -43,7 +45,7 @@ impl StateStore {
                     maybe_event = event_receiver.recv() => {
                         match maybe_event {
                             Some(event) => {
-                            state.handle_board_event(&event);
+                                state.handle_board_event(&event);
                             },
                             None => {
                                 connection_handle = Option::None;
@@ -61,7 +63,10 @@ impl StateStore {
                         },
                         Action::AddScreen { screen_idx } => {
                             state.active_apps.push((screen_idx, None))
-                        }
+                        },
+                        Action::RemoveSreen { screend_idx } => {
+                            state.active_apps.retain(|(idx, _)| *idx != screend_idx);
+                        },
                         Action::SelectApplication { screen_idx, app_name } => {
                             state.try_set_active_room(screen_idx, app_name.as_str());
                         },
@@ -122,7 +127,7 @@ impl StateStore {
 }
 
 async fn connect_to_board(tty: &str) -> anyhow::Result<ConnectionHandle> {
-    match ConnectionHandler::connection_init(tty).await {
+    match console::connection::ConnectionHandler::connection_init(tty).await {
         Ok((event_reader, command_writer)) => Ok((event_reader, command_writer)),
         Err(err) => Err(err),
     }

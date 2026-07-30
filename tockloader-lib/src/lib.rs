@@ -7,6 +7,7 @@ pub mod board_settings;
 pub(crate) mod bootloader_serial;
 pub mod command_impl;
 pub mod connection;
+pub mod console;
 mod errors;
 pub mod known_boards;
 pub mod tabs;

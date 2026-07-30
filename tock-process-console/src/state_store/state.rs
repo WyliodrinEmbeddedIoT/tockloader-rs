@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use tui_term::vt100::Parser;
 
-use crate::pconsole::board;
+use tockloader_lib::console;
 
 /// AppData hold information about an application that is running on the board
 /// and intercepted by the console application
@@ -94,10 +94,10 @@ impl Default for State {
 
 impl State {
     /// Handle events from the board
-    pub fn handle_board_event(&mut self, event: &board::event::Event) {
+    pub fn handle_board_event(&mut self, event: &console::event::Event) {
         // TODO: should cover more types of events
         match event {
-            board::event::Event::NewMessage(event) => {
+            console::event::Event::NewMessage(event) => {
                 if !self.apps_data_map.contains_key(&event.app) {
                     let new_app_data =
                         AppData::new(event.app.clone(), event.pid as u64, event.is_app);
@@ -127,7 +127,7 @@ impl State {
                     app_data.has_new_logs = true;
                 }
             }
-            board::event::Event::LostConnection(_err) => {
+            console::event::Event::LostConnection(_err) => {
                 todo!()
             }
         }

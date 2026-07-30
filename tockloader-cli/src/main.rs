@@ -15,6 +15,7 @@ use tockloader_lib::connection::{
     Connection, ProbeRSConnection, ProbeTargetInfo, SerialConnection, SerialTargetInfo,
     TockloaderConnection,
 };
+use tockloader_lib::console::legacy;
 use tockloader_lib::known_boards::KnownBoard;
 use tockloader_lib::tabs::tab::Tab;
 use tockloader_lib::{
@@ -190,7 +191,7 @@ async fn main() -> Result<()> {
                     match conn {
                         TockloaderConnection::ProbeRS(_) => panic!("Cannot establish connection."),
                         TockloaderConnection::Serial(serial_connection) => {
-                            tock_process_console::legacy::run(
+                            legacy::run(
                                 serial_connection
                                     .into_inner_stream()
                                     .expect("Expected board to be connected."),
@@ -200,7 +201,7 @@ async fn main() -> Result<()> {
                     }
                 }
                 "pconsole" => {
-                    tock_process_console::pconsole::run()
+                    tock_process_console::run()
                         .await
                         .context("Failed to run console.")?;
                 }
