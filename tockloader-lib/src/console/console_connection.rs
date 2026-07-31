@@ -10,28 +10,28 @@ use tokio_util::codec::{Decoder, Encoder, Framed};
 /// a command_writer for sending commands to the board
 #[allow(dead_code)]
 pub struct ConsoleConnection<OutItem, InItem> {
-    pub log_reader: Mutex<UnboundedReceiver<OutItem>>,
-    pub command_writer: UnboundedSender<InItem>,
+    log_reader: Mutex<UnboundedReceiver<OutItem>>,
+    command_writer: UnboundedSender<InItem>,
     pub error_reader: Mutex<UnboundedReceiver<String>>,
 }
 
-pub async fn init<C, InItem>(
+pub async fn init<Codec, InItem>(
     mut stream: SerialStream,
-    codec: C,
-) -> Result<ConsoleConnection<C::Item, InItem>, anyhow::Error>
+    codec: Codec,
+) -> Result<ConsoleConnection<Codec::Item, InItem>, anyhow::Error>
 where
-    C: Decoder + Encoder<InItem> + Send + 'static,
-    C::Item: Send + 'static,
+    Codec: Decoder + Encoder<InItem> + Send + 'static,
+    Codec::Item: Send + 'static,
     InItem: Send + 'static,
-    <C as Decoder>::Error: Send + std::fmt::Display,
-    <C as Encoder<InItem>>::Error: Send + std::fmt::Display,
+    <Codec as Decoder>::Error: Send + std::fmt::Display,
+    <Codec as Encoder<InItem>>::Error: Send + std::fmt::Display,
 {
     #[cfg(unix)]
     stream.set_exclusive(false)?;
 
     let (mut stream_writer, mut stream_reader) = Framed::new(stream, codec).split();
 
-    let (log_writer, log_reader) = mpsc::unbounded_channel::<C::Item>();
+    let (log_writer, log_reader) = mpsc::unbounded_channel::<Codec::Item>();
     let (command_writer, mut command_reader) = mpsc::unbounded_channel::<InItem>();
     let (error_writer, error_reader) = mpsc::unbounded_channel::<String>();
 
