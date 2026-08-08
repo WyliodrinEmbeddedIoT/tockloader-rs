@@ -1,5 +1,6 @@
 <script setup>
 import Navbar from '../components/Navbar.vue';
+import Toast from '../components/ui/Toast.vue';
 </script>
 
 <template>
@@ -17,7 +18,7 @@ import Navbar from '../components/Navbar.vue';
         </button>
         
     </div>
-    <Card></Card>
+    
     
   </div>
 </template>
