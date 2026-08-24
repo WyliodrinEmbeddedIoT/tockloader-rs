@@ -1,0 +1,31 @@
+# Licensed under the Apache License, Version 2.0 or the MIT License.
+# SPDX-License-Identifier: Apache-2.0 OR MIT
+# Copyright OXIDOS AUTOMOTIVE 2026.
+
+name: HIL Build & Test
+
+on:
+  push:
+  pull_request:
+  merge_group:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  hil:
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Python dependencies
+      run: pip install -r tests/requirements.txt
+    - name: Submit HIL job
+      env:
+        CLIENT_API_KEY: ${{ secrets.CLIENT_API_KEY }}
+      working-directory: tests
+      run: python run_test.py
