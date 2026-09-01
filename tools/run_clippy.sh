@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 # Check to see if we can execute `cargo clippy`.
 # We don't want to force an installation onto the user, so for we
 # will only notify them of the issue.
