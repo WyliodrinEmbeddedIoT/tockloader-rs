@@ -36,19 +36,15 @@ jobs:
             webkit2gtk-driver \
             xvfb
     - name: Build
-      run: cargo build --verbose
+      run: cargo build 
     - name: Run tests
-      run: cargo test --verbose
+      run: cargo test 
 
   ci-format:
     runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        components: rustfmt
     - name: ci-job-format
       run:  make ci-job-format
 
@@ -57,10 +53,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: actions-rs/toolchain@v1 
-      with:
-        toolchain: stable
-        components: clippy
     - name: Install libudev
       run: sudo apt update && sudo apt install -y libudev-dev
     - name: Tauri dependencies
