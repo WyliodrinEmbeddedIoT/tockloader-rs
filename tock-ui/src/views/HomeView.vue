@@ -17,7 +17,5 @@ import Navbar from '../components/Navbar.vue';
         </button>
         
     </div>
-    <Card></Card>
-    
   </div>
 </template>
