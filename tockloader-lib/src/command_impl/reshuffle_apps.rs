@@ -394,7 +394,7 @@ pub fn reshuffle_apps(
                             installed: false,
                             idx: None,
                             ram_address: None,
-                            address: settings.app_start_address + insert_size,
+                            address: gap_start,
                             size: needed_padding,
                         });
                         reordered_apps.push(c_app.as_index(None, gap_start + needed_padding));
@@ -456,8 +456,8 @@ fn create_padding(size: u32) -> Vec<u8> {
     buf.extend_from_slice(&u16::to_le_bytes(16u16)); // header size is 16
     buf.extend_from_slice(&u32::to_le_bytes(size)); // total_size is size
     let mut checksum = 0;
-    for chunk in buf.chunks_exact(4) {
-        let word = u32::from_le_bytes(chunk.try_into().unwrap());
+    for chunk in buf.as_chunks::<4>().0 {
+        let word = u32::from_le_bytes(*chunk);
         checksum ^= word;
     }
     buf.extend_from_slice(&u32::to_le_bytes(checksum));
@@ -757,5 +757,39 @@ mod tests {
             },
         ]);
         assert_eq!(reshuffled_apps, correct_config);
+    }
+
+    #[test]
+    fn overwrite_drops_conflicting_app_before_reshuffle() {
+        // Two installed apps already on the board.
+        let old_app = TockApp::Flexible(FlexibleApp {
+            installed: true,
+            idx: Some(0),
+            size: 0x2000,
+        });
+        let other_app = TockApp::Flexible(FlexibleApp {
+            installed: true,
+            idx: Some(1),
+            size: 0x1000,
+        });
+
+        let apps = vec![old_app, other_app];
+
+        let conflict_idx = Some(0);
+        let resolution_is_overwrite = true;
+
+        let filtered: Vec<TockApp> = apps
+            .into_iter()
+            .enumerate()
+            .filter(|(i, _)| !(resolution_is_overwrite && Some(*i) == conflict_idx))
+            .map(|(_, a)| a)
+            .collect();
+
+        // The conflicting app (index 0) should be gone; the other one stays.
+        assert_eq!(filtered.len(), 1);
+        match &filtered[0] {
+            TockApp::Flexible(f) => assert_eq!(f.idx, Some(1)),
+            _ => panic!("expected the remaining app to be the Flexible variant with idx 1"),
+        }
     }
 }

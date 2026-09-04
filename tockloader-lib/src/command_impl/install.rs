@@ -7,15 +7,33 @@ use crate::errors::{InternalError, TockloaderError};
 use crate::tabs::tab::Tab;
 use crate::{CommandInstall, CommandList, IO};
 
+pub enum InstallResolution {
+    Overwrite,
+    InstallAsNew,
+}
 #[async_trait]
 impl CommandInstall for TockloaderConnection {
-    async fn install_app(&mut self, tab: Tab) -> Result<(), TockloaderError> {
+    async fn install_app(
+        &mut self,
+        tab: Tab,
+        resolution: InstallResolution,
+    ) -> Result<(), TockloaderError> {
         let settings = self.get_settings();
         let app_attributes_list: Vec<AppAttributes> = self.list().await?;
-        let mut tock_app_list = app_attributes_list
+        // Create the list of names of the apps on the board
+        let names: Vec<Option<&str>> = app_attributes_list
             .iter()
-            .map(TockApp::from_app_attributes)
-            .collect::<Vec<TockApp>>();
+            .map(|a| a.tbf_header.get_package_name())
+            .collect();
+        let conflict_idx = names.iter().position(|n| *n == Some(tab.name()));
+        let mut tock_app_list: Vec<TockApp> = app_attributes_list
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| {
+                !(matches!(resolution, InstallResolution::Overwrite) && Some(*i) == conflict_idx)
+            })
+            .map(|(_, a)| TockApp::from_app_attributes(a))
+            .collect();
         log::info!("tock apps len {:?}", tock_app_list.len());
 
         // obtain the binaries in a vector
