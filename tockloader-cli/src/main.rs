@@ -22,6 +22,21 @@ use tockloader_lib::{
     CommandList,
 };
 
+fn probe_selector_matches(probe: &probe_rs::probe::DebugProbeInfo, selector: &str) -> bool {
+    let mut parts = selector.splitn(3, ':');
+    let vendor_id = parts
+        .next()
+        .and_then(|value| u16::from_str_radix(value.trim_start_matches("0x"), 16).ok());
+    let product_id = parts
+        .next()
+        .and_then(|value| u16::from_str_radix(value.trim_start_matches("0x"), 16).ok());
+    let serial = parts.next();
+
+    vendor_id == Some(probe.vendor_id)
+        && product_id == Some(probe.product_id)
+        && serial == probe.serial_number.as_deref()
+}
+
 fn get_serial_target_info(user_options: &ArgMatches) -> SerialTargetInfo {
     let board = get_known_board(user_options);
     if let Some(board) = board {
@@ -129,10 +144,20 @@ async fn open_connection(user_options: &ArgMatches) -> Result<TockloaderConnecti
 
         Ok(conn)
     } else {
-        let ans =
-            inquire::Select::new("Which debug probe do you want to use?", list_debug_probes())
+        let options = list_debug_probes();
+        let ans = if let Some(selector) = user_options.get_one::<String>("probe") {
+            options
+                .iter()
+                .find(|probe| probe_selector_matches(probe, selector))
+                .cloned()
+                .with_context(|| format!("No debug probe matches selector '{selector}'"))?
+        } else if options.len() == 1 {
+            options[0].clone()
+        } else {
+            inquire::Select::new("Which debug probe do you want to use?", options)
                 .prompt()
-                .context("No debug probe is connected.")?;
+                .context("No debug probe is connected.")?
+        };
 
         let mut conn: TockloaderConnection = ProbeRSConnection::new(
             ans,

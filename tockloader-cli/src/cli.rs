@@ -77,7 +77,7 @@ fn get_app_args() -> Vec<clap::Arg> {
 /// Generate all of the [arguments](clap::Arg) that are required by subcommands which work
 /// with channels and computer-board communication.
 fn get_channel_args() -> Vec<clap::Arg> {
-    let probe_args_ids = get_probe_args_ids().into_iter();
+    let probe_target_args_ids = ["chip".into(), "core".into()];
     let serial_args_ids = get_serial_args_ids().into_iter();
 
     let known_board_names = list_known_board_names()
@@ -88,13 +88,19 @@ fn get_channel_args() -> Vec<clap::Arg> {
     vec![
         arg!(--serial "Use the serial bootloader to flash")
             .action(clap::ArgAction::SetTrue)
-            .conflicts_with_all(probe_args_ids.clone().collect::<Vec<_>>()),
+            .conflicts_with_all(
+                probe_target_args_ids
+                    .iter()
+                    .cloned()
+                    .chain(serial_args_ids.clone())
+                    .collect::<Vec<_>>(),
+            ),
         arg!(--board <BOARD> "Explicitly specify the board that is being targeted")
             .value_parser(known_board_names)
             .conflicts_with_all(
                 serial_args_ids
                     .clone()
-                    .chain(probe_args_ids.clone())
+                    .chain(probe_target_args_ids.iter().cloned())
                     .collect::<Vec<_>>(),
             ),
     ]
@@ -108,6 +114,7 @@ fn get_probe_args() -> Vec<clap::Arg> {
     let serial_args_ids = get_serial_args_ids().into_iter();
 
     vec![
+        arg!(--probe <PROBE> "Select a debug probe by VID:PID:SERIAL selector"),
         // Conditionally required via custom validation
         arg!(--chip <CHIP> "Explicitly specify the chip"),
         // Default of ProbeTargetInfo: 0
@@ -120,7 +127,7 @@ fn get_probe_args() -> Vec<clap::Arg> {
 }
 
 fn get_probe_args_ids() -> Vec<clap::Id> {
-    vec!["chip".into(), "core".into()]
+    vec!["probe".into(), "chip".into(), "core".into()]
 }
 
 fn get_serial_args() -> Vec<clap::Arg> {
