@@ -59,6 +59,23 @@ impl IO for SerialConnection {
         let _ = issue_command(stream, Command::ErasePage, pkt, true, 0, Response::OK).await?;
         Ok(())
     }
+
+    async fn erase_page(&mut self, address: u64) -> Result<(), TockloaderError> {
+        let page_size = self.get_settings().page_size;
+
+        if !address.is_multiple_of(page_size) {
+            return Err(InternalError::MisconfiguredBoardSettings(format!(
+                "erase_page address {address:#x} is not aligned to the page size ({page_size} bytes)"
+            ))
+            .into());
+        }
+
+        let stream = self.stream.as_mut().expect("Board must be open.");
+
+        let pkt = (address as u32).to_le_bytes().to_vec();
+        let _ = issue_command(stream, Command::ErasePage, pkt, true, 0, Response::OK).await?;
+        Ok(())
+    }
 }
 
 #[async_trait]

@@ -389,12 +389,11 @@ pub fn reshuffle_apps(
 
                     if needed_padding > 0 {
                         // insert a padding
-                        total_padding += needed_padding as usize;
                         reordered_apps.push(Index {
                             installed: false,
                             idx: None,
                             ram_address: None,
-                            address: settings.app_start_address + insert_size,
+                            address: gap_start,
                             size: needed_padding,
                         });
                         reordered_apps.push(c_app.as_index(None, gap_start + needed_padding));
@@ -444,6 +443,21 @@ pub fn reshuffle_apps(
             break;
         }
     }
+
+    if let Some(last) = saved_configuration.last() {
+        let end = last.address + last.size;
+        if !end.is_multiple_of(settings.page_size) {
+            let needed_padding = settings.page_size - end % settings.page_size;
+            saved_configuration.push(Index {
+                installed: false,
+                idx: None,
+                ram_address: None,
+                address: end,
+                size: needed_padding,
+            });
+        }
+    }
+
     log::info!("obtained config {:#x?}", saved_configuration);
     // panic!();
     Some(saved_configuration)
@@ -456,8 +470,8 @@ fn create_padding(size: u32) -> Vec<u8> {
     buf.extend_from_slice(&u16::to_le_bytes(16u16)); // header size is 16
     buf.extend_from_slice(&u32::to_le_bytes(size)); // total_size is size
     let mut checksum = 0;
-    for chunk in buf.chunks_exact(4) {
-        let word = u32::from_le_bytes(chunk.try_into().unwrap());
+    for chunk in buf.as_chunks::<4>().0 {
+        let word = u32::from_le_bytes(*chunk);
         checksum ^= word;
     }
     buf.extend_from_slice(&u32::to_le_bytes(checksum));

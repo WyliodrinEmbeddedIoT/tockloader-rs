@@ -37,6 +37,31 @@ impl IO for ProbeRSConnection {
         loader.commit(session, options)?;
         Ok(())
     }
+
+    async fn erase_page(&mut self, address: u64) -> Result<(), TockloaderError> {
+        if !self.is_open() {
+            return Err(InternalError::ConnectionNotOpen.into());
+        }
+        let page_size = self.settings.page_size as usize;
+
+        // If `address` isn't page-aligned, the flash hardware will still erase some page
+        if !address.is_multiple_of(page_size as u64) {
+            return Err(InternalError::MisconfiguredBoardSettings(format!(
+                "erase_page address {address:#x} is not aligned to the page size ({page_size} bytes)"
+            ))
+            .into());
+        }
+
+        let session = self.session.as_mut().expect("Board must be open");
+        let mut loader = session.target().flash_loader();
+        loader.add_data(address, &vec![0xFFu8; page_size])?;
+
+        let mut options = DownloadOptions::default();
+        options.keep_unwritten_bytes = false;
+
+        loader.commit(session, options)?;
+        Ok(())
+    }
 }
 
 #[async_trait]
