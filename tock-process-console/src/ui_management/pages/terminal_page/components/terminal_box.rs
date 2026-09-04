@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use crate::pconsole::ui_management::pages::Component;
+use crate::ui_management::pages::Component;
 use bytes::Bytes;
 use crossterm::event::{KeyCode, KeyEventKind, MouseEventKind};
 use ratatui::layout::{Alignment, Rect};
@@ -16,9 +16,9 @@ use tokio::sync::mpsc::UnboundedSender;
 use tui_term::vt100::Parser;
 use tui_term::widget::PseudoTerminal;
 
-use crate::pconsole::state_store::{Action, AppData, State};
-use crate::pconsole::ui_management::components::ComponentRender;
-use crate::pconsole::ui_management::pages::terminal_page::section::SectionActivation;
+use crate::state_store::{Action, AppData, State};
+use crate::ui_management::components::ComponentRender;
+use crate::ui_management::pages::terminal_page::section::SectionActivation;
 
 #[derive(Clone)]
 struct Properties {
@@ -63,11 +63,7 @@ impl TerminalBox {
 }
 
 impl Component for TerminalBox {
-    fn new(
-        state: &crate::pconsole::state_store::State,
-        screen_idx: Option<usize>,
-        action_sender: UnboundedSender<Action>,
-    ) -> Self
+    fn new(state: &State, screen_idx: Option<usize>, action_sender: UnboundedSender<Action>) -> Self
     where
         Self: Sized,
     {
@@ -79,7 +75,7 @@ impl Component for TerminalBox {
         }
     }
 
-    fn update_with_state(self, state: &crate::pconsole::state_store::State) -> Self
+    fn update_with_state(self, state: &State) -> Self
     where
         Self: Sized,
     {
@@ -234,7 +230,6 @@ impl ComponentRender<RenderProps> for TerminalBox {
             .find(|(idx, _)| idx == &self.screen_idx)
             .map(|(_, app)| app)
         {
-            // writeln!(file, "We have active app when rendering the terminal");
             if let Some(parser) = self.properties.apps_parsers_map.get(active_app) {
                 let mut parser = parser.lock().unwrap();
                 parser.set_size(

@@ -10,8 +10,8 @@ use ratatui::style::Style;
 use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::pconsole::state_store::{Action, AppData, State};
-use crate::pconsole::ui_management::components::{Component, ComponentRender};
+use crate::state_store::{Action, AppData, State};
+use crate::ui_management::components::{Component, ComponentRender};
 
 use super::applications_page::ApplicationsPage;
 use super::components::apps_list;
@@ -43,6 +43,7 @@ pub struct MainPage {
     pub hovered_screen: usize,
     pub active_screen: Option<usize>,
     pub screens: Vec<ApplicationsPage>,
+    pub toggle_usage: bool,
 }
 
 impl MainPage {
@@ -82,6 +83,7 @@ impl Component for MainPage {
             hovered_screen: 0,
             active_screen: Option::None,
             screens: vec![ApplicationsPage::new(state, Some(0), action_sender.clone())],
+            toggle_usage: true,
         }
         .update_with_state(state)
     }
@@ -131,16 +133,19 @@ impl Component for MainPage {
                         screen_idx: self.screens.len(),
                     });
                 }
-                KeyCode::Left => self.hover_previous_screen(),
-                KeyCode::Right => self.hover_next_screen(),
+                KeyCode::Char('u') => {
+                    self.toggle_usage = !self.toggle_usage;
+                }
+                KeyCode::Char('h') | KeyCode::Left => self.hover_previous_screen(),
+                KeyCode::Char('l') | KeyCode::Right => self.hover_next_screen(),
                 KeyCode::Enter => {
                     let last_hovered_screen = self.hovered_screen;
                     self.active_screen = Some(last_hovered_screen);
                 }
-                KeyCode::Char('q') => {
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     let _ = self.action_sender.send(Action::Exit);
                 }
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                KeyCode::Char('q') => {
                     let _ = self.action_sender.send(Action::Exit);
                 }
                 _ => {}
@@ -166,7 +171,14 @@ impl ComponentRender<()> for MainPage {
     fn render(&mut self, frame: &mut ratatui::prelude::Frame, _properties: ()) {
         let [left, right] = *Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(80), Constraint::Percentage(20)].as_ref())
+            .constraints(
+                if self.toggle_usage {
+                    [Constraint::Percentage(80), Constraint::Percentage(20)]
+                } else {
+                    [Constraint::Percentage(100), Constraint::Percentage(0)]
+                }
+                .as_ref(),
+            )
             .split(frame.area())
         else {
             panic!("The main layout should have 3 chunks")
@@ -203,7 +215,9 @@ impl ComponentRender<()> for MainPage {
 
         // let usage_text: Text = widget_usage_to_text(self.usage_info());
         let usage_info = UsageInfo {
-            description: Some("Select the running process to interact with".into()),
+            description: Some(
+                "Select the running process to interact with. Press (u) to toggle usage.".into(),
+            ),
             lines: vec![
                 UsageInfoLine {
                     keys: vec!["Esc".into()],
@@ -224,6 +238,8 @@ impl ComponentRender<()> for MainPage {
         let usage = Paragraph::new(usage_text)
             .wrap(Wrap { trim: true })
             .block(Block::default().borders(Borders::ALL).title("Usage"));
-        frame.render_widget(usage, right);
+        if self.toggle_usage {
+            frame.render_widget(usage, right);
+        }
     }
 }

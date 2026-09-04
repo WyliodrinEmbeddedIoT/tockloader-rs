@@ -1,12 +1,10 @@
 use anyhow::Error;
 use bytes::{Buf, BufMut, BytesMut};
 use console::Term;
-use futures::stream::{SplitSink, SplitStream};
-use futures::{SinkExt, StreamExt};
 use std::io::{self, Write};
 use tokio::signal;
 use tokio_serial::SerialStream;
-use tokio_util::codec::{Decoder, Encoder, Framed};
+use tokio_util::codec::{Decoder, Encoder};
 
 #[derive(Debug)]
 struct TerminalCodec;
@@ -14,70 +12,41 @@ struct TerminalCodec;
 pub async fn run(stream: SerialStream) {
     println!("Connecting to board... (press Ctrl+C to stop)");
 
-    let (writer, reader) = Framed::new(stream, TerminalCodec).split();
-    let reader_handle = tokio::spawn(listen_serial(reader));
-    let writer_handle = tokio::spawn(write_serial(writer));
-    tokio::select! {
-        _ = reader_handle => {}
-        _ = writer_handle => {}
-    }
-}
-
-async fn listen_serial(
-    mut reader: SplitStream<Framed<SerialStream, TerminalCodec>>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("Failed to install Ctrl+C handler");
-    };
-    let read_task = async {
-        while let Some(line) = reader.next().await {
-            print!("{}", line.unwrap());
-            io::stdout().flush().unwrap();
-        }
-
-        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-    };
+    let conn = super::console_connection::init(stream, TerminalCodec)
+        .await
+        .expect("Failed to initialize console connection");
 
     tokio::select! {
-        _ = ctrl_c => {
-        }
-        res = read_task => {
-            res?;
-        }
+        _ = signal::ctrl_c() => {}
+
+        _ = async {
+            tokio::join!(
+                async {
+                    loop {
+                        match conn.raw_read().await {
+                            Ok(line) => {
+                                print!("{}", line);
+                                io::stdout().flush().unwrap();
+                            }
+                            Err(_) => break,
+                        }
+                    }
+                },
+                async {
+                    loop {
+                        match get_key().await {
+                            Ok(Some(buffer)) => {
+                                if conn.raw_write(buffer).await.is_err() {
+                                    break;
+                                }
+                            }
+                            _ => break,
+                        }
+                    }
+                }
+            )
+        } => {}
     }
-
-    Ok(())
-}
-
-async fn write_serial(
-    mut writer: SplitSink<Framed<SerialStream, TerminalCodec>, String>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let ctrl_c = async {
-        signal::ctrl_c()
-            .await
-            .expect("Failed to install Ctrl+C handler");
-    };
-
-    let write_task = async {
-        loop {
-            if let Some(buffer) = get_key().await? {
-                writer.send(buffer).await?;
-            } else {
-                break Ok::<(), Box<dyn std::error::Error + Send + Sync>>(());
-            }
-        }
-    };
-
-    tokio::select! {
-        _ = ctrl_c => {}
-        res = write_task => {
-            res?;
-        }
-    }
-
-    Ok(())
 }
 
 async fn get_key() -> Result<Option<String>, Error> {

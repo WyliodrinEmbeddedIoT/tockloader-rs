@@ -4,8 +4,8 @@
 
 use std::vec;
 
-use crate::pconsole::state_store::{Action, BoardConnectionStatus, State};
-use crate::pconsole::ui_management::components::{Component, ComponentRender};
+use crate::state_store::{Action, BoardConnectionStatus, State};
+use crate::ui_management::components::{Component, ComponentRender};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout};
 use ratatui::prelude::Direction;
@@ -120,12 +120,10 @@ impl Component for SetupPage {
             KeyCode::Enter => {
                 self.set_port();
             }
-            KeyCode::Char('c') => {
-                if key.modifiers == KeyModifiers::CONTROL {
-                    let _ = self.action_sender.send(Action::Exit);
-                }
+            KeyCode::Char('c') if key.modifiers == KeyModifiers::CONTROL => {
+                let _ = self.action_sender.send(Action::Exit);
             }
-            KeyCode::Char('a') => {
+            KeyCode::Tab | KeyCode::Char('h') | KeyCode::Char('l') | KeyCode::Char('a') => {
                 if self.show_state == ShowState::ShowBoardsOnly {
                     self.show_state = ShowState::ShowAllSerialPorts;
                     self.scrollbar_state_serial.select_first();
@@ -134,28 +132,14 @@ impl Component for SetupPage {
                     self.scrollbar_state_boards.select_first();
                 }
             }
-            KeyCode::Up => {
+            KeyCode::PageUp | KeyCode::Char('k') | KeyCode::Up => {
                 if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_previous()
                 } else if self.show_state == ShowState::ShowBoardsOnly {
                     self.scrollbar_state_boards.select_previous()
                 }
             }
-            KeyCode::Down => {
-                if self.show_state == ShowState::ShowAllSerialPorts {
-                    self.scrollbar_state_serial.select_next()
-                } else if self.show_state == ShowState::ShowBoardsOnly {
-                    self.scrollbar_state_boards.select_next()
-                }
-            }
-            KeyCode::PageUp => {
-                if self.show_state == ShowState::ShowAllSerialPorts {
-                    self.scrollbar_state_serial.select_previous()
-                } else if self.show_state == ShowState::ShowBoardsOnly {
-                    self.scrollbar_state_boards.select_previous()
-                }
-            }
-            KeyCode::PageDown => {
+            KeyCode::PageDown | KeyCode::Char('j') | KeyCode::Down => {
                 if self.show_state == ShowState::ShowAllSerialPorts {
                     self.scrollbar_state_serial.select_next()
                 } else if self.show_state == ShowState::ShowBoardsOnly {
@@ -344,7 +328,7 @@ impl ComponentRender<()> for SetupPage {
 
         let [_, show_text_h, _] = temp_show_text_h.areas(show_text_v);
 
-        let show_text = Paragraph::new(Text::from("Press A to switch display mode."));
+        let show_text = Paragraph::new(Text::from("Press A/Tab/h/l to switch display mode."));
         frame.render_widget(show_text, show_text_h);
 
         let temp_enter_text_v = Layout::default()
@@ -370,7 +354,7 @@ impl ComponentRender<()> for SetupPage {
         let help_text = Paragraph::new(Text::from("Press Enter to select highlighted port."));
         frame.render_widget(help_text, enter_text_h);
 
-        let help_text = Paragraph::new(Text::from("Use ▲ ▼ PageUp PageDown to scroll.  "));
+        let help_text = Paragraph::new(Text::from("Use ▲/▼, PageUp/PageDown, j/k to scroll.  "));
         frame.render_widget(help_text, help_text_h);
 
         let error = if let Some(error) = &self.properties.error_message {

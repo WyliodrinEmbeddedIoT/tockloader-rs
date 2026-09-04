@@ -6,8 +6,8 @@ use super::components::apps_list::{self, AppsList};
 use super::components::terminal_box::{RenderProps, TerminalBox};
 use super::section::SectionActivation;
 
-use crate::pconsole::state_store::{Action, AppData, State};
-use crate::pconsole::ui_management::components::{Component, ComponentRender};
+use crate::state_store::{Action, AppData, State};
+use crate::ui_management::components::{Component, ComponentRender};
 use crossterm::event::{KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::Color;
@@ -199,10 +199,10 @@ impl Component for ApplicationsPage {
                 }
                 KeyCode::Left => self.hover_previous(),
                 KeyCode::Right => self.hover_next(),
-                KeyCode::Char('q') => {
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                     let _ = self.action_sender.send(Action::Exit);
                 }
-                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                KeyCode::Char('q') => {
                     let _ = self.action_sender.send(Action::Exit);
                 }
                 _ => {}

@@ -12,6 +12,7 @@ edition = "2021"
 
 [dependencies]
 crossterm = { version = "0.27.0", features = ["event-stream"] }
+tockloader-lib = {path = "../tockloader-lib/"}
 circular-queue = "0.2.6"
 tokio = { version = "1.32.0", features = ["full"] }
 anyhow = "1.0.75"

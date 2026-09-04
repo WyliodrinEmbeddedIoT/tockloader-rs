@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Copyright OXIDOS AUTOMOTIVE 2024.
 
-use crate::pconsole::state_store::{Action, State};
-use crate::pconsole::ui_management::components::{Component, ComponentRender};
-use crate::pconsole::ui_management::pages::terminal_page::section::SectionActivation;
+use crate::state_store::{Action, State};
+use crate::ui_management::components::{Component, ComponentRender};
+use crate::ui_management::pages::terminal_page::section::SectionActivation;
 use crossterm::event::{KeyCode, KeyEventKind};
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
@@ -129,10 +129,10 @@ impl Component for AppsList {
         }
 
         match key.code {
-            KeyCode::Up => {
+            KeyCode::Char('k') | KeyCode::Up => {
                 self.previous();
             }
-            KeyCode::Down => {
+            KeyCode::Char('j') | KeyCode::Down => {
                 self.next();
             }
             KeyCode::Enter => {
